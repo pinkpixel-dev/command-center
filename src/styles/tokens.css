@@ -1,0 +1,105 @@
+/* Design tokens. Nothing in the app should invent a colour, radius, or
+   duration inline; add it here first, then consume it. */
+
+:root {
+  --font-sans: "IBM Plex Sans", "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", ui-monospace, monospace;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1.0625rem;
+  --text-xl: 1.375rem;
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+
+  --radius-sm: 6px;
+  --radius-md: 9px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  --sidebar-width: 248px;
+  --topbar-height: 60px;
+  --tap-target: 44px;
+
+  --ease: cubic-bezier(0.2, 0, 0, 1);
+  --duration-fast: 110ms;
+  --duration-base: 180ms;
+
+  --shadow-panel: 0 18px 42px -22px rgb(0 0 0 / 0.75);
+  --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.28);
+}
+
+/* Dark is the default and the design's home turf. */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: oklch(0.181 0.004 286);
+  --bg-texture: oklch(0.26 0.006 286 / 0.5);
+  --surface: oklch(0.214 0.005 286);
+  --surface-raised: oklch(0.246 0.006 286);
+  --surface-inset: oklch(0.158 0.004 286);
+  --surface-hover: oklch(0.268 0.007 286);
+
+  --border: oklch(0.303 0.006 286);
+  --border-strong: oklch(0.392 0.008 286);
+
+  --text: oklch(0.968 0.002 286);
+  --text-muted: oklch(0.735 0.007 286);
+  --text-faint: oklch(0.625 0.008 286);
+  --text-inverse: oklch(0.19 0.004 286);
+
+  --accent: oklch(0.792 0.146 155);
+  --accent-quiet: oklch(0.792 0.146 155 / 0.14);
+  --accent-border: oklch(0.792 0.146 155 / 0.4);
+
+  --warn: oklch(0.812 0.135 79);
+  --warn-quiet: oklch(0.812 0.135 79 / 0.14);
+  --danger: oklch(0.681 0.183 24);
+  --danger-quiet: oklch(0.681 0.183 24 / 0.16);
+
+  --primary-bg: oklch(0.968 0.002 286);
+  --primary-text: oklch(0.19 0.004 286);
+  --primary-bg-hover: oklch(0.88 0.003 286);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: oklch(0.967 0.003 286);
+  --bg-texture: oklch(0.72 0.008 286 / 0.35);
+  --surface: oklch(0.995 0.001 286);
+  --surface-raised: oklch(1 0 0);
+  --surface-inset: oklch(0.945 0.004 286);
+  --surface-hover: oklch(0.928 0.005 286);
+
+  --border: oklch(0.878 0.005 286);
+  --border-strong: oklch(0.775 0.008 286);
+
+  --text: oklch(0.235 0.006 286);
+  --text-muted: oklch(0.455 0.008 286);
+  --text-faint: oklch(0.518 0.008 286);
+  --text-inverse: oklch(0.99 0.001 286);
+
+  --accent: oklch(0.545 0.128 155);
+  --accent-quiet: oklch(0.545 0.128 155 / 0.12);
+  --accent-border: oklch(0.545 0.128 155 / 0.45);
+
+  --warn: oklch(0.545 0.125 60);
+  --warn-quiet: oklch(0.575 0.125 65 / 0.13);
+  --danger: oklch(0.535 0.185 26);
+  --danger-quiet: oklch(0.535 0.185 26 / 0.12);
+
+  --primary-bg: oklch(0.235 0.006 286);
+  --primary-text: oklch(0.99 0.001 286);
+  --primary-bg-hover: oklch(0.135 0.006 286);
+
+  --shadow-panel: 0 18px 42px -26px rgb(0 0 0 / 0.35);
+}
