@@ -4,6 +4,7 @@ import type { FormEvent } from "react";
 import { kindLabel, riskLabel } from "../lib/format";
 import { COMMAND_KINDS, RISK_LEVELS } from "../lib/types";
 import type { Collection, CommandInput, CommandKind, RiskLevel } from "../lib/types";
+import { CollectionField } from "./CollectionField";
 import { Button } from "./ui/Button";
 import { CheckboxField, SelectField, TextAreaField, TextField } from "./ui/Field";
 import { Modal } from "./ui/Modal";
@@ -59,13 +60,6 @@ export function CommandForm({
     onSubmit(draft);
   };
 
-  const toggleCollection = (id: number) =>
-    patch({
-      collectionIds: draft.collectionIds.includes(id)
-        ? draft.collectionIds.filter((existing) => existing !== id)
-        : [...draft.collectionIds, id],
-    });
-
   return (
     <Modal
       open={open}
@@ -97,6 +91,7 @@ export function CommandForm({
           onChange={(event) => patch({ title: event.target.value })}
           placeholder="Leave blank to use the first line"
           autoFocus
+          data-modal-autofocus=""
         />
 
         <TextAreaField
@@ -124,6 +119,12 @@ export function CommandForm({
           suggestions={tagSuggestions}
           onChange={(tags) => patch({ tags })}
           hint="Enter or comma to add. Tags describe what a command is about."
+        />
+
+        <CollectionField
+          collections={collections}
+          value={draft.collectionIds}
+          onChange={(collectionIds) => patch({ collectionIds })}
         />
 
         <div className="form__disclosure">
@@ -194,7 +195,7 @@ export function CommandForm({
               type="url"
               value={draft.sourceUrl ?? ""}
               onChange={(event) => patch({ sourceUrl: event.target.value || null })}
-              placeholder="https://wiki.archlinux.org/..."
+              placeholder="https://docs.example.com/..."
             />
 
             <TextAreaField
@@ -204,22 +205,6 @@ export function CommandForm({
               onChange={(event) => patch({ notes: event.target.value })}
               placeholder="The gotcha you will forget by next month"
             />
-
-            {collections.length > 0 && (
-              <fieldset className="fieldset">
-                <legend className="field__label">Collections</legend>
-                <div className="checkbox-grid">
-                  {collections.map((collection) => (
-                    <CheckboxField
-                      key={collection.id}
-                      label={collection.name}
-                      checked={draft.collectionIds.includes(collection.id)}
-                      onChange={() => toggleCollection(collection.id)}
-                    />
-                  ))}
-                </div>
-              </fieldset>
-            )}
 
             <CheckboxField
               label="Favorite"

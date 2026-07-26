@@ -21,7 +21,6 @@ const settings: AppSettings = {
   theme: "dark",
   commandViewMode: "compact",
   confirmBeforeDelete: true,
-  defaultCollectionId: null,
 };
 
 describe("SettingsPanel", () => {
@@ -33,7 +32,7 @@ describe("SettingsPanel", () => {
     const user = userEvent.setup();
     const onSave = vi.fn().mockImplementation(async (next: AppSettings) => next);
 
-    render(<SettingsPanel settings={settings} collections={[]} onSave={onSave} />);
+    render(<SettingsPanel settings={settings} onSave={onSave} />);
 
     await user.selectOptions(screen.getByLabelText("Theme"), "high-contrast");
     await user.selectOptions(screen.getByLabelText("Library view"), "cards");
@@ -49,17 +48,17 @@ describe("SettingsPanel", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("Settings saved");
   });
 
-  it("contains no controls for the removed Quick Add feature", async () => {
+  it("contains no controls for removed Quick Add or default collection preferences", async () => {
     render(
       <SettingsPanel
         settings={settings}
-        collections={[]}
         onSave={vi.fn().mockResolvedValue(settings)}
       />,
     );
 
     expect(screen.queryByText("Quick Add")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Global shortcut")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Default collection for new commands")).not.toBeInTheDocument();
     expect(await screen.findByText("/tmp/command-center/library.db")).toBeInTheDocument();
   });
 });

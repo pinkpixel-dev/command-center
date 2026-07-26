@@ -38,8 +38,9 @@ export function Modal({
 
     returnFocusRef.current = document.activeElement as HTMLElement | null;
     const panel = panelRef.current;
+    const preferred = panel?.querySelector<HTMLElement>("[data-modal-autofocus]");
     const first = panel?.querySelector<HTMLElement>(FOCUSABLE);
-    (first ?? panel)?.focus();
+    (preferred ?? first ?? panel)?.focus();
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {

@@ -12,7 +12,7 @@ Everything lives in a single SQLite file on your machine. No account, no sync, n
 
 - **Command library.** Save commands, scripts, sequences, snippets, and reference notes. Title, content, description, tags, and a pile of optional fields hidden behind a disclosure so adding one entry takes about ten seconds.
 - **Full-text search.** SQLite FTS5 across titles, command text, descriptions, notes, tags, and collection names. Prefix matching means results appear while you type, and punctuation-heavy searches like `rm -rf` do not blow up the query.
-- **Collections and tags.** Collections say *why* commands belong together (Arch Rescue, Git Mistakes). Tags say *what* they are about (docker, network, cleanup).
+- **Collections and tags.** Collections say *why* commands belong together. Tags say *what* they are about. Create only the organization you actually need; fresh libraries do not come with starter collections or tags.
 - **Favorites and recents.** Pin the ones you reach for. Copying an entry bumps its counter and drops it into Recent.
 - **Local risk labels.** Offline rules mark entries Safe, Caution, or Destructive and explain why. `rm -rf`, `dd of=`, `git push --force`, and piping a download into a shell all get flagged before you run them. You can override the label per entry.
 - **Templates.** Write `ssh {{user}}@{{host}}`, fill the blanks in the expanded card, and copy the finished command.

@@ -37,6 +37,16 @@ describe("Modal", () => {
     expect(document.activeElement).toBe(screen.getByRole("button", { name: "Close dialog" }));
   });
 
+  it("honors an explicitly requested initial focus target", () => {
+    render(
+      <Modal open title="Create collection" onClose={vi.fn()}>
+        <input aria-label="Collection name" data-modal-autofocus />
+      </Modal>,
+    );
+
+    expect(screen.getByLabelText("Collection name")).toHaveFocus();
+  });
+
   it("closes on Escape and on the close button", async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();

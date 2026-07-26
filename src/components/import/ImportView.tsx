@@ -1,5 +1,3 @@
-import { useMemo } from "react";
-
 import { useImportSession } from "../../hooks/useImportSession";
 import type { Collection } from "../../lib/types";
 import { ImportDone } from "./ImportDone";
@@ -9,7 +7,6 @@ import { ImportSource } from "./ImportSource";
 export interface ImportViewProps {
   collections: Collection[];
   tagSuggestions: string[];
-  defaultCollectionId: number | null;
   onOpenLibrary: () => void;
   onImported: () => void;
 }
@@ -18,17 +15,10 @@ export interface ImportViewProps {
 export function ImportView({
   collections,
   tagSuggestions,
-  defaultCollectionId,
   onOpenLibrary,
   onImported,
 }: ImportViewProps) {
-  // A stable array, so the session's loaders keep their identity between renders.
-  const defaultCollectionIds = useMemo(
-    () => (defaultCollectionId !== null ? [defaultCollectionId] : []),
-    [defaultCollectionId],
-  );
-
-  const session = useImportSession(defaultCollectionIds);
+  const session = useImportSession();
 
   const runImport = async () => {
     await session.runImport();

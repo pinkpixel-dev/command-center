@@ -119,7 +119,6 @@ export interface AppSettings {
   theme: ThemePreference;
   commandViewMode: CommandViewMode;
   confirmBeforeDelete: boolean;
-  defaultCollectionId: number | null;
 }
 
 /** Shape of a rejected `invoke` call. */

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { Check, Pencil, Trash2, X } from "lucide-react";
 
@@ -10,17 +10,26 @@ import { Modal } from "./ui/Modal";
 
 export interface CollectionManagerProps {
   open: boolean;
+  intent: CollectionManagerIntent;
   collections: Collection[];
   onClose: () => void;
   onChanged: () => void;
+  onRequestDelete: (collection: Collection) => void;
 }
+
+export type CollectionManagerIntent =
+  | { type: "manage" }
+  | { type: "create" }
+  | { type: "rename"; collectionId: number };
 
 /** Create, rename, and remove collections. Entries always survive a removal. */
 export function CollectionManager({
   open,
+  intent,
   collections,
   onClose,
   onChanged,
+  onRequestDelete,
 }: CollectionManagerProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -28,6 +37,30 @@ export function CollectionManager({
   const [editingName, setEditingName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    setError(null);
+    if (intent.type === "create") {
+      setName("");
+      setDescription("");
+      setEditingId(null);
+      return;
+    }
+
+    if (intent.type === "rename") {
+      const collection = collections.find((candidate) => candidate.id === intent.collectionId);
+      setEditingId(collection?.id ?? null);
+      setEditingName(collection?.name ?? "");
+      return;
+    }
+
+    setEditingId(null);
+    // Apply the opening intent once. A collection refresh after save should not
+    // put the manager back into rename mode.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, intent]);
 
   const run = async (action: () => Promise<unknown>) => {
     setBusy(true);
@@ -88,7 +121,9 @@ export function CollectionManager({
           label="New collection"
           value={name}
           onChange={(event) => setName(event.target.value)}
-          placeholder="Arch Rescue"
+          placeholder="Utilities"
+          autoFocus={intent.type === "create"}
+          data-modal-autofocus={intent.type === "create" ? "" : undefined}
         />
         <TextField
           label="Description"
@@ -162,7 +197,7 @@ export function CollectionManager({
                     size="sm"
                     iconOnly
                     aria-label={`Delete ${collection.name}`}
-                    onClick={() => void run(() => api.deleteCollection(collection.id))}
+                    onClick={() => onRequestDelete(collection)}
                   >
                     <Trash2 size={15} aria-hidden="true" />
                   </Button>
