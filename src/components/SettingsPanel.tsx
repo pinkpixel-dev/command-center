@@ -3,6 +3,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 
 import { APP_NAME, APP_VERSION, MAKER, MAKER_URL, GITHUB_URL, SUPPORT_EMAIL } from "../lib/app-info";
 import { api, toAppError } from "../lib/ipc";
+import { backupLibraryDatabase, exportLibraryMarkdown } from "../lib/library-files";
 import type {
   AppSettings,
   CommandViewMode,
@@ -20,6 +21,10 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
   const [draft, setDraft] = useState<AppSettings>(settings);
   const [status, setStatus] = useState<{ tone: "ok" | "error"; message: string } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [fileAction, setFileAction] = useState<"export" | "backup" | null>(null);
+  const [fileStatus, setFileStatus] = useState<{ tone: "ok" | "error"; message: string } | null>(
+    null,
+  );
   const [location, setLocation] = useState("");
 
   useEffect(() => setDraft(settings), [settings]);
@@ -50,6 +55,25 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(settings);
 
+  const runFileAction = async (action: "export" | "backup") => {
+    setFileAction(action);
+    setFileStatus(null);
+    try {
+      const destination =
+        action === "export" ? await exportLibraryMarkdown() : await backupLibraryDatabase();
+      if (destination) {
+        setFileStatus({
+          tone: "ok",
+          message: action === "export" ? "Markdown export saved" : "Library backup saved",
+        });
+      }
+    } catch (caught) {
+      setFileStatus({ tone: "error", message: toAppError(caught).message });
+    } finally {
+      setFileAction(null);
+    }
+  };
+
   return (
     <div className="settings">
       <section className="settings__section">
@@ -72,6 +96,20 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
           checked={draft.confirmBeforeDelete}
           onChange={(event) => patch({ confirmBeforeDelete: event.target.checked })}
         />
+
+        <CheckboxField
+          label="Launch Command Center when you sign in"
+          hint="Uses the operating system's normal startup registration."
+          checked={draft.launchAtStartup}
+          onChange={(event) => patch({ launchAtStartup: event.target.checked })}
+        />
+
+        <CheckboxField
+          label="Keep running in the tray when the window closes"
+          hint="Use the tray icon to reopen Command Center or quit it completely."
+          checked={draft.closeToTray}
+          onChange={(event) => patch({ closeToTray: event.target.checked })}
+        />
       </section>
 
       <section className="settings__section">
@@ -89,6 +127,40 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
           ]}
           hint="Compact keeps each command easy to scan. Cards use more width when it is available."
         />
+      </section>
+
+      <section className="settings__section">
+        <h2>Data</h2>
+        <p className="settings__description">
+          Export a readable Markdown copy or save a complete SQLite backup that Command Center can
+          open later.
+        </p>
+        <div className="settings__button-row">
+          <Button
+            variant="secondary"
+            onClick={() => void runFileAction("export")}
+            loading={fileAction === "export"}
+            disabled={fileAction !== null}
+          >
+            Export Markdown
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => void runFileAction("backup")}
+            loading={fileAction === "backup"}
+            disabled={fileAction !== null}
+          >
+            Back up library
+          </Button>
+        </div>
+        {fileStatus && (
+          <span
+            className={fileStatus.tone === "ok" ? "settings__status" : "settings__status is-error"}
+            role="status"
+          >
+            {fileStatus.message}
+          </span>
+        )}
       </section>
 
       <div className="settings__actions">

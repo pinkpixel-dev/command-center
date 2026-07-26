@@ -3,11 +3,14 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { CollectionActions } from "./components/CollectionActions";
 import { CollectionManager } from "./components/CollectionManager";
 import type { CollectionManagerIntent } from "./components/CollectionManager";
+import { CommandPalette } from "./components/CommandPalette";
 import { ImportView } from "./components/import/ImportView";
+import { createPaletteActions } from "./components/palette-actions";
 import { ViewHeader } from "./components/ViewHeader";
 import { CommandForm } from "./components/CommandForm";
 import { CommandList } from "./components/CommandList";
 import { ConfirmDialog } from "./components/ConfirmDialog";
+import { HelpGuide } from "./components/HelpGuide";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { ShortcutsHelp } from "./components/ShortcutsHelp";
 import { Sidebar } from "./components/Sidebar";
@@ -21,6 +24,7 @@ import { useLibrary } from "./hooks/useLibrary";
 import { useSettings, useTheme } from "./hooks/useSettings";
 import { scopeTitle } from "./lib/format";
 import { api, toAppError } from "./lib/ipc";
+import { backupLibraryDatabase, exportLibraryMarkdown } from "./lib/library-files";
 import { emptyCommandInput, toCommandInput } from "./lib/types";
 import type {
   AppView,
@@ -50,6 +54,8 @@ export default function App() {
   const [view, setView] = useState<AppView>("library");
   const [collectionManagerIntent, setCollectionManagerIntent] =
     useState<CollectionManagerIntent | null>(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<CommandEntry | null>(null);
   const [pendingCollectionDelete, setPendingCollectionDelete] = useState<Collection | null>(null);
@@ -140,6 +146,16 @@ export default function App() {
     setNavOpen(false);
   };
 
+  const openHelp = () => {
+    setHelpOpen(true);
+    setNavOpen(false);
+  };
+
+  const openPalette = () => {
+    setPaletteOpen(true);
+    setNavOpen(false);
+  };
+
   const openCollectionManager = (intent: CollectionManagerIntent) => {
     setCollectionManagerIntent(intent);
     setNavOpen(false);
@@ -173,11 +189,6 @@ export default function App() {
   // Search and "add" only make sense on the library screen; the rest are global.
   const libraryHotkeys = view === "library"
     ? [
-        {
-          combo: "mod+k",
-          allowWhileTyping: true,
-          handler: () => searchRef.current?.focus(),
-        },
         { combo: "/", handler: () => searchRef.current?.focus() },
         { combo: "n", handler: openCreate },
       ]
@@ -185,6 +196,7 @@ export default function App() {
 
   useHotkeys([
     ...libraryHotkeys,
+    { combo: "mod+k", allowWhileTyping: true, handler: openPalette },
     { combo: "shift+?", allowWhileTyping: true, handler: openShortcuts },
     {
       combo: "escape",
@@ -212,6 +224,41 @@ export default function App() {
         debouncedSearch.trim() ? ` matching "${debouncedSearch.trim()}"` : ""
       }`;
 
+  const focusSearch = () => {
+    setView("library");
+    window.setTimeout(() => searchRef.current?.focus(), 0);
+  };
+
+  const exportMarkdown = async () => {
+    try {
+      const destination = await exportLibraryMarkdown();
+      if (destination) notify("Markdown export saved", "success");
+    } catch (caught) {
+      notify(toAppError(caught).message, "error");
+    }
+  };
+
+  const backupLibrary = async () => {
+    try {
+      const destination = await backupLibraryDatabase();
+      if (destination) notify("Library backup saved", "success");
+    } catch (caught) {
+      notify(toAppError(caught).message, "error");
+    }
+  };
+
+  const paletteActions = createPaletteActions({
+    onAdd: openCreate,
+    onSearch: focusSearch,
+    onScopeChange: changeScope,
+    onManageCollections: () => openCollectionManager({ type: "manage" }),
+    onExport: () => void exportMarkdown(),
+    onBackup: () => void backupLibrary(),
+    onHelp: openHelp,
+    onShortcuts: openShortcuts,
+    onSettings: () => openView("settings"),
+  });
+
   return (
     <div className={`shell${navOpen ? " is-nav-open" : ""}`}>
       <a className="skip-link" href="#library">
@@ -226,6 +273,8 @@ export default function App() {
           scope={scope}
           view={view}
           onScopeChange={changeScope}
+          onOpenPalette={openPalette}
+          onOpenHelp={openHelp}
           onOpenShortcuts={openShortcuts}
           onOpenSettings={() => openView("settings")}
           onManageCollections={() => openCollectionManager({ type: "manage" })}
@@ -360,6 +409,17 @@ export default function App() {
       <ShortcutsHelp
         open={shortcutsOpen}
         onClose={() => setShortcutsOpen(false)}
+      />
+
+      <HelpGuide
+        open={helpOpen}
+        onClose={() => setHelpOpen(false)}
+      />
+
+      <CommandPalette
+        open={paletteOpen}
+        actions={paletteActions}
+        onClose={() => setPaletteOpen(false)}
       />
 
       <ConfirmDialog

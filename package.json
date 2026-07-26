@@ -1,10 +1,10 @@
 {
   "name": "command-center",
   "private": true,
-  "version": "0.4.2",
+  "version": "0.5.0",
   "description": "Local-first desktop app for saving, organizing, and instantly finding terminal commands, scripts, and technical snippets",
   "author": "Pink Pixel <admin@pinkpixel.dev>",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",

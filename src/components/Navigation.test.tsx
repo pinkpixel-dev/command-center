@@ -34,10 +34,12 @@ describe("library navigation", () => {
     const user = userEvent.setup();
 
     const onManageCollections = vi.fn();
+    const onOpenPalette = vi.fn();
+    const onOpenHelp = vi.fn();
     const onOpenShortcuts = vi.fn();
     const onOpenSettings = vi.fn();
 
-    render(
+    const { container } = render(
       <Sidebar
         stats={{ total: 3, favorites: 1, recent: 2, scripts: 0 }}
         tags={[]}
@@ -45,6 +47,8 @@ describe("library navigation", () => {
         scope={{ type: "all" }}
         view="library"
         onScopeChange={vi.fn()}
+        onOpenPalette={onOpenPalette}
+        onOpenHelp={onOpenHelp}
         onOpenShortcuts={onOpenShortcuts}
         onOpenSettings={onOpenSettings}
         onManageCollections={onManageCollections}
@@ -53,10 +57,14 @@ describe("library navigation", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Manage collections" }));
+    await user.click(screen.getByRole("button", { name: "Command palette" }));
+    await user.click(screen.getByRole("button", { name: "Help" }));
     await user.click(screen.getByRole("button", { name: "Keyboard shortcuts" }));
     await user.click(screen.getByRole("button", { name: "Settings" }));
 
     expect(onManageCollections).toHaveBeenCalledOnce();
+    expect(onOpenPalette).toHaveBeenCalledOnce();
+    expect(onOpenHelp).toHaveBeenCalledOnce();
     expect(onOpenShortcuts).toHaveBeenCalledOnce();
     expect(onOpenSettings).toHaveBeenCalledOnce();
     expect(
@@ -64,5 +72,7 @@ describe("library navigation", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/Arch Rescue/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Import" })).not.toBeInTheDocument();
+    expect(container.querySelector(".sidebar__logo")).toHaveAttribute("src", "/logo.png");
+    expect(screen.queryByText(/^v\d/)).not.toBeInTheDocument();
   });
 });

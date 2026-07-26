@@ -8,6 +8,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   theme: "dark",
   commandViewMode: "cards",
   confirmBeforeDelete: true,
+  launchAtStartup: false,
+  closeToTray: false,
 };
 
 export interface SettingsState {

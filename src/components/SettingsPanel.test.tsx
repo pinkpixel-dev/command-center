@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { api } from "../lib/ipc";
+import { backupLibraryDatabase, exportLibraryMarkdown } from "../lib/library-files";
 import type { AppSettings } from "../lib/types";
 import { SettingsPanel } from "./SettingsPanel";
 
@@ -17,15 +18,40 @@ vi.mock("../lib/ipc", async (importOriginal) => {
   };
 });
 
+vi.mock("../lib/library-files", () => ({
+  exportLibraryMarkdown: vi.fn(),
+  backupLibraryDatabase: vi.fn(),
+}));
+
 const settings: AppSettings = {
   theme: "dark",
   commandViewMode: "compact",
   confirmBeforeDelete: true,
+  launchAtStartup: false,
+  closeToTray: false,
 };
 
 describe("SettingsPanel", () => {
   beforeEach(() => {
     vi.mocked(api.libraryLocation).mockResolvedValue("/tmp/command-center/library.db");
+    vi.mocked(exportLibraryMarkdown).mockReset();
+    vi.mocked(backupLibraryDatabase).mockReset();
+  });
+
+  it("exports Markdown and creates a restorable database backup", async () => {
+    const user = userEvent.setup();
+    vi.mocked(exportLibraryMarkdown).mockResolvedValue("/tmp/library.md");
+    vi.mocked(backupLibraryDatabase).mockResolvedValue("/tmp/library.db");
+
+    render(<SettingsPanel settings={settings} onSave={vi.fn().mockResolvedValue(settings)} />);
+
+    await user.click(screen.getByRole("button", { name: "Export Markdown" }));
+    expect(exportLibraryMarkdown).toHaveBeenCalledOnce();
+    expect(await screen.findByRole("status")).toHaveTextContent("Markdown export saved");
+
+    await user.click(screen.getByRole("button", { name: "Back up library" }));
+    expect(backupLibraryDatabase).toHaveBeenCalledOnce();
+    expect(await screen.findByRole("status")).toHaveTextContent("Library backup saved");
   });
 
   it("saves the high-contrast card view as part of the complete settings payload", async () => {
@@ -36,6 +62,8 @@ describe("SettingsPanel", () => {
 
     await user.selectOptions(screen.getByLabelText("Theme"), "high-contrast");
     await user.selectOptions(screen.getByLabelText("Library view"), "cards");
+    await user.click(screen.getByLabelText("Launch Command Center when you sign in"));
+    await user.click(screen.getByLabelText("Keep running in the tray when the window closes"));
 
     expect(screen.getByText("Unsaved changes")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Save settings" }));
@@ -44,6 +72,8 @@ describe("SettingsPanel", () => {
       ...settings,
       theme: "high-contrast",
       commandViewMode: "cards",
+      launchAtStartup: true,
+      closeToTray: true,
     });
     expect(await screen.findByRole("status")).toHaveTextContent("Settings saved");
   });

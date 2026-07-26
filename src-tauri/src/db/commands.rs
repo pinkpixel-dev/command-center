@@ -23,6 +23,21 @@ pub fn list(conn: &Connection, filter: &ListQuery) -> AppResult<Vec<Command>> {
     hydrate(conn, rows)
 }
 
+/// Every entry without the interactive library's result limit, used for a
+/// complete export rather than a screen-sized query.
+pub fn list_all(conn: &Connection) -> AppResult<Vec<Command>> {
+    let sql = format!(
+        "SELECT {} FROM commands c ORDER BY c.title COLLATE NOCASE ASC, c.id ASC",
+        query::COLUMNS
+    );
+    let mut statement = conn.prepare(&sql)?;
+    let rows = statement
+        .query_map([], map_row)?
+        .collect::<Result<Vec<PartialCommand>, _>>()?;
+
+    hydrate(conn, rows)
+}
+
 /// One entry by id.
 pub fn get(conn: &Connection, id: i64) -> AppResult<Command> {
     let sql = format!("SELECT {} FROM commands c WHERE c.id = ?1", query::COLUMNS);

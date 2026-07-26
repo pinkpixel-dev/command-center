@@ -1,6 +1,17 @@
-import { Clock, Ellipsis, Keyboard, Library, Settings, Star, Terminal, X } from "lucide-react";
+import {
+  Clock,
+  Command,
+  Ellipsis,
+  HelpCircle,
+  Keyboard,
+  Library,
+  Settings,
+  Star,
+  Terminal,
+  X,
+} from "lucide-react";
 
-import { APP_NAME, APP_VERSION } from "../lib/app-info";
+import { APP_NAME } from "../lib/app-info";
 import { scopesEqual } from "../lib/format";
 import type { AppView, Collection, LibraryStats, Scope, Tag } from "../lib/types";
 import { Button } from "./ui/Button";
@@ -12,6 +23,8 @@ export interface SidebarProps {
   scope: Scope;
   view: AppView;
   onScopeChange: (scope: Scope) => void;
+  onOpenPalette: () => void;
+  onOpenHelp: () => void;
   onOpenShortcuts: () => void;
   onOpenSettings: () => void;
   onManageCollections: () => void;
@@ -32,6 +45,8 @@ export function Sidebar({
   scope,
   view,
   onScopeChange,
+  onOpenPalette,
+  onOpenHelp,
   onOpenShortcuts,
   onOpenSettings,
   onManageCollections,
@@ -42,9 +57,9 @@ export function Sidebar({
   return (
     <nav className="sidebar" aria-label="Library sections">
       <div className="sidebar__brand">
-        <div>
+        <div className="sidebar__brand-lockup">
+          <img className="sidebar__logo" src="/logo.png" alt="" aria-hidden="true" />
           <span className="sidebar__title">{APP_NAME}</span>
-          <span className="sidebar__version">v{APP_VERSION}</span>
         </div>
         <Button
           variant="ghost"
@@ -144,6 +159,24 @@ export function Sidebar({
       )}
 
       <div className="sidebar__footer">
+        <button
+          type="button"
+          className="nav-item"
+          onClick={onOpenPalette}
+        >
+          <Command size={15} aria-hidden="true" />
+          <span className="nav-item__label">Command palette</span>
+        </button>
+
+        <button
+          type="button"
+          className="nav-item"
+          onClick={onOpenHelp}
+        >
+          <HelpCircle size={15} aria-hidden="true" />
+          <span className="nav-item__label">Help</span>
+        </button>
+
         <button
           type="button"
           className="nav-item"

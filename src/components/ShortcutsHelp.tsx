@@ -3,7 +3,7 @@ import { Kbd } from "./ui/Kbd";
 import { Modal } from "./ui/Modal";
 
 const SHORTCUTS: { keys: string; action: string }[] = [
-  { keys: "Ctrl + K", action: "Focus search" },
+  { keys: "Ctrl + K", action: "Open the command palette" },
   { keys: "/", action: "Focus search" },
   { keys: "N", action: "Add a command" },
   { keys: "↑ ↓", action: "Move through the list" },

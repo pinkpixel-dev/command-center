@@ -119,6 +119,8 @@ export interface AppSettings {
   theme: ThemePreference;
   commandViewMode: CommandViewMode;
   confirmBeforeDelete: boolean;
+  launchAtStartup: boolean;
+  closeToTray: boolean;
 }
 
 /** Shape of a rejected `invoke` call. */

@@ -17,6 +17,10 @@ pub struct AppSettings {
     pub command_view_mode: String,
     /// Ask before deleting an entry.
     pub confirm_before_delete: bool,
+    /// Register Command Center with the operating system's login startup.
+    pub launch_at_startup: bool,
+    /// Hide the main window instead of exiting when it is closed.
+    pub close_to_tray: bool,
 }
 
 impl Default for AppSettings {
@@ -25,6 +29,8 @@ impl Default for AppSettings {
             theme: "dark".into(),
             command_view_mode: "cards".into(),
             confirm_before_delete: true,
+            launch_at_startup: false,
+            close_to_tray: false,
         }
     }
 }
@@ -86,6 +92,8 @@ mod tests {
         let settings = db.with(load).unwrap();
         assert_eq!(settings.theme, "dark");
         assert_eq!(settings.command_view_mode, "cards");
+        assert!(!settings.launch_at_startup);
+        assert!(!settings.close_to_tray);
     }
 
     #[test]
@@ -95,6 +103,8 @@ mod tests {
             theme: "high-contrast".into(),
             command_view_mode: "cards".into(),
             confirm_before_delete: false,
+            launch_at_startup: true,
+            close_to_tray: true,
         };
 
         db.with(|conn| save(conn, settings.clone())).unwrap();
@@ -103,6 +113,8 @@ mod tests {
         assert_eq!(loaded.theme, "high-contrast");
         assert_eq!(loaded.command_view_mode, "cards");
         assert!(!loaded.confirm_before_delete);
+        assert!(loaded.launch_at_startup);
+        assert!(loaded.close_to_tray);
     }
 
     #[test]

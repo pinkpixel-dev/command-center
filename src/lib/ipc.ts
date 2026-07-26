@@ -79,4 +79,7 @@ export const api = {
   saveSettings: (settings: AppSettings) =>
     call<AppSettings>("save_settings", { settingsInput: settings }),
   libraryLocation: () => call<string>("library_location"),
+  exportLibraryMarkdown: (destination: string) =>
+    call<string>("export_library_markdown", { destination }),
+  backupLibrary: (destination: string) => call<string>("backup_library", { destination }),
 };

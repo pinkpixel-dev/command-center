@@ -27,6 +27,8 @@ dist-ssr
 .agents/
 .claude/
 .codex/
+.playwright-cli/
+output/
 
 # Other
 DOCS/
