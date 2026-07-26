@@ -30,10 +30,12 @@ describe("library navigation", () => {
     expect(screen.queryByRole("button", { name: "Quick Add" })).not.toBeInTheDocument();
   });
 
-  it("makes create and manage collection actions explicit", async () => {
+  it("exposes collection management and global sidebar actions", async () => {
     const user = userEvent.setup();
 
     const onManageCollections = vi.fn();
+    const onOpenShortcuts = vi.fn();
+    const onOpenSettings = vi.fn();
 
     render(
       <Sidebar
@@ -43,21 +45,24 @@ describe("library navigation", () => {
         scope={{ type: "all" }}
         view="library"
         onScopeChange={vi.fn()}
-        onOpenSettings={vi.fn()}
+        onOpenShortcuts={onOpenShortcuts}
+        onOpenSettings={onOpenSettings}
         onManageCollections={onManageCollections}
         onDismiss={vi.fn()}
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Create collection" }));
     await user.click(screen.getByRole("button", { name: "Manage collections" }));
+    await user.click(screen.getByRole("button", { name: "Keyboard shortcuts" }));
+    await user.click(screen.getByRole("button", { name: "Settings" }));
 
     expect(onManageCollections).toHaveBeenCalledOnce();
+    expect(onOpenShortcuts).toHaveBeenCalledOnce();
+    expect(onOpenSettings).toHaveBeenCalledOnce();
     expect(
       screen.getByText("Create a collection to keep related commands together."),
     ).toBeInTheDocument();
     expect(screen.queryByText(/Arch Rescue/i)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Settings" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Import" })).not.toBeInTheDocument();
   });
 });

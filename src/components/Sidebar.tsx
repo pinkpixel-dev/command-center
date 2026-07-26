@@ -1,4 +1,4 @@
-import { Clock, Ellipsis, Library, Settings, Star, Terminal, X } from "lucide-react";
+import { Clock, Ellipsis, Keyboard, Library, Settings, Star, Terminal, X } from "lucide-react";
 
 import { APP_NAME, APP_VERSION } from "../lib/app-info";
 import { scopesEqual } from "../lib/format";
@@ -12,6 +12,7 @@ export interface SidebarProps {
   scope: Scope;
   view: AppView;
   onScopeChange: (scope: Scope) => void;
+  onOpenShortcuts: () => void;
   onOpenSettings: () => void;
   onManageCollections: () => void;
   onDismiss: () => void;
@@ -31,6 +32,7 @@ export function Sidebar({
   scope,
   view,
   onScopeChange,
+  onOpenShortcuts,
   onOpenSettings,
   onManageCollections,
   onDismiss,
@@ -142,6 +144,15 @@ export function Sidebar({
       )}
 
       <div className="sidebar__footer">
+        <button
+          type="button"
+          className="nav-item"
+          onClick={onOpenShortcuts}
+        >
+          <Keyboard size={15} aria-hidden="true" />
+          <span className="nav-item__label">Keyboard shortcuts</span>
+        </button>
+
         <button
           type="button"
           className={`nav-item${view === "settings" ? " is-active" : ""}`}

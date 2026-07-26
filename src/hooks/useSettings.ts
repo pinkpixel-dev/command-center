@@ -6,7 +6,7 @@ import type { AppSettings, ThemePreference } from "../lib/types";
 
 export const DEFAULT_SETTINGS: AppSettings = {
   theme: "dark",
-  commandViewMode: "compact",
+  commandViewMode: "cards",
   confirmBeforeDelete: true,
 };
 

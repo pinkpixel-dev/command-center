@@ -135,6 +135,11 @@ export default function App() {
     setNavOpen(false);
   };
 
+  const openShortcuts = () => {
+    setShortcutsOpen(true);
+    setNavOpen(false);
+  };
+
   const openCollectionManager = (intent: CollectionManagerIntent) => {
     setCollectionManagerIntent(intent);
     setNavOpen(false);
@@ -180,7 +185,7 @@ export default function App() {
 
   useHotkeys([
     ...libraryHotkeys,
-    { combo: "shift+?", allowWhileTyping: true, handler: () => setShortcutsOpen(true) },
+    { combo: "shift+?", allowWhileTyping: true, handler: openShortcuts },
     {
       combo: "escape",
       allowWhileTyping: true,
@@ -221,8 +226,8 @@ export default function App() {
           scope={scope}
           view={view}
           onScopeChange={changeScope}
+          onOpenShortcuts={openShortcuts}
           onOpenSettings={() => openView("settings")}
-          onCreateCollection={() => openCollectionManager({ type: "create" })}
           onManageCollections={() => openCollectionManager({ type: "manage" })}
           onDismiss={() => setNavOpen(false)}
         />
@@ -326,11 +331,6 @@ export default function App() {
                 onRetry={() => void refresh()}
               />
 
-              <footer className="shell__footer">
-                <button type="button" className="link-button" onClick={() => setShortcutsOpen(true)}>
-                  Keyboard shortcuts
-                </button>
-              </footer>
             </div>
           </>
         )}

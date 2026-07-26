@@ -2,7 +2,7 @@ import { act, renderHook } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { ThemePreference } from "../lib/types";
-import { useTheme } from "./useSettings";
+import { DEFAULT_SETTINGS, useTheme } from "./useSettings";
 
 afterEach(() => {
   delete document.documentElement.dataset.theme;
@@ -53,5 +53,11 @@ describe("useTheme", () => {
 
     unmount();
     expect(removeEventListener).toHaveBeenCalledWith("change", changeListener);
+  });
+});
+
+describe("DEFAULT_SETTINGS", () => {
+  it("uses cards when no saved library view is available", () => {
+    expect(DEFAULT_SETTINGS.commandViewMode).toBe("cards");
   });
 });

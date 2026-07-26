@@ -23,7 +23,7 @@ impl Default for AppSettings {
     fn default() -> Self {
         Self {
             theme: "dark".into(),
-            command_view_mode: "compact".into(),
+            command_view_mode: "cards".into(),
             confirm_before_delete: true,
         }
     }
@@ -38,7 +38,7 @@ impl AppSettings {
             self.theme = "dark".into();
         }
         if !matches!(self.command_view_mode.as_str(), "compact" | "cards") {
-            self.command_view_mode = "compact".into();
+            self.command_view_mode = "cards".into();
         }
         self
     }
@@ -85,7 +85,7 @@ mod tests {
         let db = Database::open_in_memory().unwrap();
         let settings = db.with(load).unwrap();
         assert_eq!(settings.theme, "dark");
-        assert_eq!(settings.command_view_mode, "compact");
+        assert_eq!(settings.command_view_mode, "cards");
     }
 
     #[test]
@@ -116,7 +116,7 @@ mod tests {
 
         let saved = db.with(|conn| save(conn, settings.clone())).unwrap();
         assert_eq!(saved.theme, "dark");
-        assert_eq!(saved.command_view_mode, "compact");
+        assert_eq!(saved.command_view_mode, "cards");
     }
 
     #[test]
@@ -142,8 +142,22 @@ mod tests {
 
         let loaded = db.with(load).unwrap();
         assert_eq!(loaded.theme, "light");
-        assert_eq!(loaded.command_view_mode, "compact");
+        assert_eq!(loaded.command_view_mode, "cards");
         assert!(!loaded.confirm_before_delete);
+    }
+
+    #[test]
+    fn saved_compact_preference_is_preserved() {
+        let db = Database::open_in_memory().unwrap();
+        let settings = AppSettings {
+            command_view_mode: "compact".into(),
+            ..AppSettings::default()
+        };
+
+        db.with(|conn| save(conn, settings)).unwrap();
+        let loaded = db.with(load).unwrap();
+
+        assert_eq!(loaded.command_view_mode, "compact");
     }
 
     #[test]
