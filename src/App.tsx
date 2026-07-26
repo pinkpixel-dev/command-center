@@ -1,6 +1,8 @@
 import { useCallback, useMemo, useRef, useState } from "react";
 
+import { CollectionActions } from "./components/CollectionActions";
 import { CollectionManager } from "./components/CollectionManager";
+import type { CollectionManagerIntent } from "./components/CollectionManager";
 import { ImportView } from "./components/import/ImportView";
 import { ViewHeader } from "./components/ViewHeader";
 import { CommandForm } from "./components/CommandForm";
@@ -11,16 +13,18 @@ import { ShortcutsHelp } from "./components/ShortcutsHelp";
 import { Sidebar } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
 import { Button } from "./components/ui/Button";
+import { useToast } from "./components/ui/Toast";
 import { useCommandActions } from "./hooks/useCommandActions";
 import { useDebounced } from "./hooks/useDebounced";
 import { useHotkeys } from "./hooks/useHotkeys";
 import { useLibrary } from "./hooks/useLibrary";
 import { useSettings, useTheme } from "./hooks/useSettings";
 import { scopeTitle } from "./lib/format";
-import { toAppError } from "./lib/ipc";
+import { api, toAppError } from "./lib/ipc";
 import { emptyCommandInput, toCommandInput } from "./lib/types";
 import type {
   AppView,
+  Collection,
   CommandEntry,
   CommandInput,
   CommandKind,
@@ -44,9 +48,12 @@ export default function App() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [navOpen, setNavOpen] = useState(false);
   const [view, setView] = useState<AppView>("library");
-  const [collectionsOpen, setCollectionsOpen] = useState(false);
+  const [collectionManagerIntent, setCollectionManagerIntent] =
+    useState<CollectionManagerIntent | null>(null);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<CommandEntry | null>(null);
+  const [pendingCollectionDelete, setPendingCollectionDelete] = useState<Collection | null>(null);
+  const [deletingCollection, setDeletingCollection] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [editor, setEditor] = useState<EditorState>({
@@ -57,6 +64,7 @@ export default function App() {
   });
 
   const searchRef = useRef<HTMLInputElement>(null);
+  const { notify } = useToast();
   const { settings, save: saveSettings } = useSettings();
   useTheme(settings.theme);
 
@@ -83,16 +91,11 @@ export default function App() {
       mode: "create",
       id: null,
       initial: emptyCommandInput({
-        collectionIds:
-          scope.type === "collection"
-            ? [scope.id]
-            : settings.defaultCollectionId !== null
-              ? [settings.defaultCollectionId]
-              : [],
+        collectionIds: scope.type === "collection" ? [scope.id] : [],
         tags: scope.type === "tag" ? [scope.name] : [],
       }),
     });
-  }, [scope, settings.defaultCollectionId]);
+  }, [scope]);
 
   const openEdit = useCallback((entry: CommandEntry) => {
     setFormError(null);
@@ -132,6 +135,36 @@ export default function App() {
     setNavOpen(false);
   };
 
+  const openCollectionManager = (intent: CollectionManagerIntent) => {
+    setCollectionManagerIntent(intent);
+    setNavOpen(false);
+  };
+
+  const requestCollectionDelete = (collection: Collection) => {
+    setCollectionManagerIntent(null);
+    setPendingCollectionDelete(collection);
+  };
+
+  const deleteCollection = async () => {
+    const collection = pendingCollectionDelete;
+    if (!collection) return;
+
+    setDeletingCollection(true);
+    try {
+      await api.deleteCollection(collection.id);
+      if (scope.type === "collection" && scope.id === collection.id) {
+        setScope({ type: "all" });
+        setExpandedId(null);
+      }
+      setPendingCollectionDelete(null);
+      notify(`Deleted ${collection.name}. Its commands are still in the library.`, "success");
+    } catch (caught) {
+      notify(toAppError(caught).message, "error");
+    } finally {
+      setDeletingCollection(false);
+    }
+  };
+
   // Search and "add" only make sense on the library screen; the rest are global.
   const libraryHotkeys = view === "library"
     ? [
@@ -161,9 +194,12 @@ export default function App() {
     },
   ]);
 
-  const title = scope.type === "collection"
-    ? collections.find((collection) => collection.id === scope.id)?.name ?? "Collection"
-    : scopeTitle(scope);
+  const activeCollection = scope.type === "collection"
+    ? collections.find((collection) => collection.id === scope.id) ?? null
+    : null;
+  const title = activeCollection?.name ?? (
+    scope.type === "collection" ? "Collection" : scopeTitle(scope)
+  );
 
   const subtitle = loading
     ? "Loading"
@@ -186,7 +222,8 @@ export default function App() {
           view={view}
           onScopeChange={changeScope}
           onOpenSettings={() => openView("settings")}
-          onManageCollections={() => setCollectionsOpen(true)}
+          onCreateCollection={() => openCollectionManager({ type: "create" })}
+          onManageCollections={() => openCollectionManager({ type: "manage" })}
           onDismiss={() => setNavOpen(false)}
         />
       </div>
@@ -214,7 +251,7 @@ export default function App() {
               }
             />
             <div className="shell__content">
-              <SettingsPanel settings={settings} collections={collections} onSave={saveSettings} />
+              <SettingsPanel settings={settings} onSave={saveSettings} />
             </div>
           </>
         )}
@@ -235,7 +272,6 @@ export default function App() {
               <ImportView
                 collections={collections}
                 tagSuggestions={tags.map((tag) => tag.name)}
-                defaultCollectionId={settings.defaultCollectionId}
                 onOpenLibrary={() => setView("library")}
                 onImported={() => void refresh()}
               />
@@ -257,6 +293,19 @@ export default function App() {
               onKindChange={setKind}
               onAdd={openCreate}
               onOpenMenu={() => setNavOpen(true)}
+              contextActions={
+                activeCollection ? (
+                  <CollectionActions
+                    collectionName={activeCollection.name}
+                    onRename={() => openCollectionManager({
+                      type: "rename",
+                      collectionId: activeCollection.id,
+                    })}
+                    onDelete={() => requestCollectionDelete(activeCollection)}
+                    onManageAll={() => openCollectionManager({ type: "manage" })}
+                  />
+                ) : undefined
+              }
             />
 
             <div className="shell__content">
@@ -300,10 +349,12 @@ export default function App() {
       />
 
       <CollectionManager
-        open={collectionsOpen}
+        open={collectionManagerIntent !== null}
+        intent={collectionManagerIntent ?? { type: "manage" }}
         collections={collections}
-        onClose={() => setCollectionsOpen(false)}
+        onClose={() => setCollectionManagerIntent(null)}
         onChanged={() => void refresh()}
+        onRequestDelete={requestCollectionDelete}
       />
 
       <ShortcutsHelp
@@ -321,6 +372,18 @@ export default function App() {
           setPendingDelete(null);
         }}
         onCancel={() => setPendingDelete(null)}
+      />
+
+      <ConfirmDialog
+        open={pendingCollectionDelete !== null}
+        title="Delete this collection?"
+        body={`"${pendingCollectionDelete?.name ?? ""}" will be removed. Its commands will stay in the library and keep any other collection memberships.`}
+        confirmLabel="Delete collection"
+        busy={deletingCollection}
+        onConfirm={() => void deleteCollection()}
+        onCancel={() => {
+          if (!deletingCollection) setPendingCollectionDelete(null);
+        }}
       />
     </div>
   );

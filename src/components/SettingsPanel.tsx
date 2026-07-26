@@ -5,7 +5,6 @@ import { APP_NAME, APP_VERSION, MAKER, MAKER_URL, GITHUB_URL, SUPPORT_EMAIL } fr
 import { api, toAppError } from "../lib/ipc";
 import type {
   AppSettings,
-  Collection,
   CommandViewMode,
   ThemePreference,
 } from "../lib/types";
@@ -14,11 +13,10 @@ import { CheckboxField, SelectField } from "./ui/Field";
 
 export interface SettingsPanelProps {
   settings: AppSettings;
-  collections: Collection[];
   onSave: (next: AppSettings) => Promise<AppSettings>;
 }
 
-export function SettingsPanel({ settings, collections, onSave }: SettingsPanelProps) {
+export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
   const [draft, setDraft] = useState<AppSettings>(settings);
   const [status, setStatus] = useState<{ tone: "ok" | "error"; message: string } | null>(null);
   const [saving, setSaving] = useState(false);
@@ -66,21 +64,6 @@ export function SettingsPanel({ settings, collections, onSave }: SettingsPanelPr
             { value: "high-contrast", label: "High contrast dark" },
             { value: "light", label: "Light" },
             { value: "system", label: "Match the system" },
-          ]}
-        />
-
-        <SelectField
-          label="Default collection for new commands"
-          value={draft.defaultCollectionId === null ? "" : String(draft.defaultCollectionId)}
-          onChange={(event) =>
-            patch({ defaultCollectionId: event.target.value ? Number(event.target.value) : null })
-          }
-          options={[
-            { value: "", label: "None" },
-            ...collections.map((collection) => ({
-              value: String(collection.id),
-              label: collection.name,
-            })),
           ]}
         />
 

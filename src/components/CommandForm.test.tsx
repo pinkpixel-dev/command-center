@@ -9,7 +9,7 @@ import { CommandForm } from "./CommandForm";
 const collections: Collection[] = [
   {
     id: 7,
-    name: "Docker Cleanup",
+    name: "Docker",
     description: "",
     commandCount: 3,
     createdAt: "2026-07-01T00:00:00Z",
@@ -86,23 +86,39 @@ describe("CommandForm", () => {
     setup();
 
     expect(screen.queryByLabelText("Shell")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Collections")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Add extra details" }));
 
     expect(screen.getByLabelText("Shell")).toBeInTheDocument();
     expect(screen.getByLabelText("Risk")).toBeInTheDocument();
-    expect(screen.getByLabelText("Docker Cleanup")).toBeInTheDocument();
   });
 
-  it("sends the advanced values it was given", async () => {
+  it("places collections directly after tags", () => {
+    setup();
+
+    const tags = screen.getByLabelText("Tags").closest(".field");
+    const collection = screen.getByLabelText("Collections").closest(".field");
+
+    expect(tags).not.toBeNull();
+    expect(collection).not.toBeNull();
+    if (!tags || !collection) {
+      throw new Error("Expected Tags and Collections fields");
+    }
+    expect(tags.compareDocumentPosition(collection) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+  });
+
+  it("sends selected collections with advanced values", async () => {
     const user = userEvent.setup();
     const { onSubmit } = setup();
 
     await user.type(screen.getByLabelText("Command"), "rm -rf ./dist");
+    await user.selectOptions(screen.getByLabelText("Collections"), "7");
     await user.click(screen.getByRole("button", { name: "Add extra details" }));
     await user.selectOptions(screen.getByLabelText("Risk"), "destructive");
     await user.type(screen.getByLabelText("Shell"), "fish");
-    await user.click(screen.getByLabelText("Docker Cleanup"));
     await user.click(screen.getByRole("button", { name: "Save command" }));
 
     expect(onSubmit.mock.calls[0][0]).toMatchObject({
@@ -110,6 +126,18 @@ describe("CommandForm", () => {
       shell: "fish",
       collectionIds: [7],
     });
+  });
+
+  it("uses neutral source documentation copy", async () => {
+    const user = userEvent.setup();
+    setup();
+
+    await user.click(screen.getByRole("button", { name: "Add extra details" }));
+
+    expect(screen.getByLabelText("Source")).toHaveAttribute(
+      "placeholder",
+      "https://docs.example.com/...",
+    );
   });
 
   it("shows a save failure coming back from the backend", () => {

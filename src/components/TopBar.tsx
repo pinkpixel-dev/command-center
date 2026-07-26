@@ -1,4 +1,4 @@
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 import { Menu, Plus, Search, X } from "lucide-react";
 
 import { kindLabel } from "../lib/format";
@@ -19,6 +19,7 @@ export interface TopBarProps {
   onKindChange: (value: CommandKind | "") => void;
   onAdd: () => void;
   onOpenMenu: () => void;
+  contextActions?: ReactNode;
 }
 
 const SORTS: { value: SortOrder; label: string }[] = [
@@ -41,6 +42,7 @@ export function TopBar({
   onKindChange,
   onAdd,
   onOpenMenu,
+  contextActions,
 }: TopBarProps) {
   return (
     <header className="topbar">
@@ -62,6 +64,7 @@ export function TopBar({
         </div>
 
         <div className="topbar__actions">
+          {contextActions}
           <Button variant="primary" size="sm" onClick={onAdd}>
             <Plus size={15} aria-hidden="true" />
             Add command

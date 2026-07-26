@@ -17,8 +17,6 @@ pub struct AppSettings {
     pub command_view_mode: String,
     /// Ask before deleting an entry.
     pub confirm_before_delete: bool,
-    /// Collection pre-selected for new entries.
-    pub default_collection_id: Option<i64>,
 }
 
 impl Default for AppSettings {
@@ -27,7 +25,6 @@ impl Default for AppSettings {
             theme: "dark".into(),
             command_view_mode: "compact".into(),
             confirm_before_delete: true,
-            default_collection_id: None,
         }
     }
 }
@@ -98,7 +95,6 @@ mod tests {
             theme: "high-contrast".into(),
             command_view_mode: "cards".into(),
             confirm_before_delete: false,
-            ..AppSettings::default()
         };
 
         db.with(|conn| save(conn, settings.clone())).unwrap();
@@ -124,7 +120,7 @@ mod tests {
     }
 
     #[test]
-    fn legacy_settings_keep_known_preferences_and_fill_new_defaults() {
+    fn legacy_settings_ignore_retired_preferences_and_keep_known_values() {
         let db = Database::open_in_memory().unwrap();
         db.with(|conn| {
             conn.execute(
@@ -148,7 +144,6 @@ mod tests {
         assert_eq!(loaded.theme, "light");
         assert_eq!(loaded.command_view_mode, "compact");
         assert!(!loaded.confirm_before_delete);
-        assert_eq!(loaded.default_collection_id, Some(7));
     }
 
     #[test]

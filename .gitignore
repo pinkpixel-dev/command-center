@@ -29,9 +29,4 @@ dist-ssr
 .codex/
 
 # Other
-CHANGELOG.md
-ERRORS.md
-MEMORY.md
-OVERVIEW.md
-PLAN.md
-ROADMAP.md
+DOCS/

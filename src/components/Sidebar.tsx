@@ -1,4 +1,4 @@
-import { Clock, FolderPlus, Library, Settings, Star, Terminal, X } from "lucide-react";
+import { Clock, Ellipsis, Library, Plus, Settings, Star, Terminal, X } from "lucide-react";
 
 import { APP_NAME, APP_VERSION } from "../lib/app-info";
 import { scopesEqual } from "../lib/format";
@@ -13,6 +13,7 @@ export interface SidebarProps {
   view: AppView;
   onScopeChange: (scope: Scope) => void;
   onOpenSettings: () => void;
+  onCreateCollection: () => void;
   onManageCollections: () => void;
   onDismiss: () => void;
 }
@@ -32,6 +33,7 @@ export function Sidebar({
   view,
   onScopeChange,
   onOpenSettings,
+  onCreateCollection,
   onManageCollections,
   onDismiss,
 }: SidebarProps) {
@@ -76,22 +78,23 @@ export function Sidebar({
       <section className="sidebar__section" aria-labelledby="sidebar-collections">
         <div className="sidebar__section-header">
           <h2 id="sidebar-collections">Collections</h2>
-          <Button
-            variant="ghost"
-            size="sm"
-            iconOnly
-            aria-label="Manage collections"
-            title="Manage collections"
-            onClick={onManageCollections}
-          >
-            <FolderPlus size={15} aria-hidden="true" />
-          </Button>
+          <div className="sidebar__section-actions" aria-label="Collection actions">
+
+            <Button
+              variant="ghost"
+              size="sm"
+              iconOnly
+              aria-label="Manage collections"
+              title="Manage collections"
+              onClick={onManageCollections}
+            >
+              <Ellipsis size={17} aria-hidden="true" />
+            </Button>
+          </div>
         </div>
 
         {collections.length === 0 ? (
-          <p className="sidebar__hint">
-            Group commands by why they belong together, like Arch Rescue or Git Mistakes.
-          </p>
+          <p className="sidebar__hint">Create a collection to keep related commands together.</p>
         ) : (
           <ul className="sidebar__nav">
             {collections.map((collection) => {

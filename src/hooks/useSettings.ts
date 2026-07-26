@@ -8,7 +8,6 @@ export const DEFAULT_SETTINGS: AppSettings = {
   theme: "dark",
   commandViewMode: "compact",
   confirmBeforeDelete: true,
-  defaultCollectionId: null,
 };
 
 export interface SettingsState {

@@ -98,6 +98,12 @@
   color: var(--text-faint);
 }
 
+.sidebar__section-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
 .sidebar__hint {
   padding: 0 var(--space-2);
   font-size: var(--text-xs);
