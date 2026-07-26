@@ -45,7 +45,7 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortOrder>("updated");
   const [kind, setKind] = useState<CommandKind | "">("");
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [openEntryId, setOpenEntryId] = useState<number | null>(null);
   const [navOpen, setNavOpen] = useState(false);
   const [view, setView] = useState<AppView>("library");
   const [collectionManagerIntent, setCollectionManagerIntent] =
@@ -127,7 +127,7 @@ export default function App() {
     setScope(next);
     setView("library");
     setNavOpen(false);
-    setExpandedId(null);
+    setOpenEntryId(null);
   };
 
   const openView = (next: AppView) => {
@@ -154,7 +154,7 @@ export default function App() {
       await api.deleteCollection(collection.id);
       if (scope.type === "collection" && scope.id === collection.id) {
         setScope({ type: "all" });
-        setExpandedId(null);
+        setOpenEntryId(null);
       }
       setPendingCollectionDelete(null);
       notify(`Deleted ${collection.name}. Its commands are still in the library.`, "success");
@@ -315,8 +315,8 @@ export default function App() {
                 error={error}
                 searching={debouncedSearch.trim().length > 0}
                 viewMode={settings.commandViewMode}
-                expandedId={expandedId}
-                onExpand={setExpandedId}
+                openEntryId={openEntryId}
+                onOpenEntry={setOpenEntryId}
                 onCopy={(entry, text) => void actions.copy(entry, text)}
                 onEdit={openEdit}
                 onDelete={confirmDelete}

@@ -13,7 +13,6 @@ export interface SidebarProps {
   view: AppView;
   onScopeChange: (scope: Scope) => void;
   onOpenSettings: () => void;
-  onCreateCollection: () => void;
   onManageCollections: () => void;
   onDismiss: () => void;
 }

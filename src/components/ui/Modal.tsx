@@ -12,7 +12,9 @@ export interface ModalProps {
   children: ReactNode;
   footer?: ReactNode;
   /** Wider layout for the full entry editor. */
-  size?: "md" | "lg";
+  size?: "md" | "lg" | "xl";
+  /** Uses the whole viewport on narrow screens. */
+  mobileFullscreen?: boolean;
 }
 
 const FOCUSABLE =
@@ -27,6 +29,7 @@ export function Modal({
   children,
   footer,
   size = "md",
+  mobileFullscreen = false,
 }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
@@ -83,7 +86,7 @@ export function Modal({
     <div className="modal-layer">
       <div className="modal-scrim" onClick={onClose} aria-hidden="true" />
       <div
-        className={`modal modal--${size}`}
+        className={`modal modal--${size}${mobileFullscreen ? " modal--mobile-fullscreen" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}

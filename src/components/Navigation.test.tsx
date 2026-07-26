@@ -32,7 +32,7 @@ describe("library navigation", () => {
 
   it("makes create and manage collection actions explicit", async () => {
     const user = userEvent.setup();
-    const onCreateCollection = vi.fn();
+
     const onManageCollections = vi.fn();
 
     render(
@@ -44,7 +44,6 @@ describe("library navigation", () => {
         view="library"
         onScopeChange={vi.fn()}
         onOpenSettings={vi.fn()}
-        onCreateCollection={onCreateCollection}
         onManageCollections={onManageCollections}
         onDismiss={vi.fn()}
       />,
@@ -53,7 +52,6 @@ describe("library navigation", () => {
     await user.click(screen.getByRole("button", { name: "Create collection" }));
     await user.click(screen.getByRole("button", { name: "Manage collections" }));
 
-    expect(onCreateCollection).toHaveBeenCalledOnce();
     expect(onManageCollections).toHaveBeenCalledOnce();
     expect(
       screen.getByText("Create a collection to keep related commands together."),

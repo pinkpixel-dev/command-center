@@ -4,6 +4,7 @@ import { Inbox, SearchX } from "lucide-react";
 
 import type { CommandEntry, CommandViewMode } from "../lib/types";
 import { CommandCard } from "./CommandCard";
+import { CommandDetailsDialog } from "./CommandDetailsDialog";
 import { Button } from "./ui/Button";
 import { EmptyState } from "./ui/EmptyState";
 
@@ -13,8 +14,8 @@ export interface CommandListProps {
   loading: boolean;
   error: string | null;
   searching: boolean;
-  expandedId: number | null;
-  onExpand: (id: number | null) => void;
+  openEntryId: number | null;
+  onOpenEntry: (id: number | null) => void;
   onCopy: (entry: CommandEntry, text: string) => void;
   onEdit: (entry: CommandEntry) => void;
   onDelete: (entry: CommandEntry) => void;
@@ -30,8 +31,8 @@ export function CommandList({
   loading,
   error,
   searching,
-  expandedId,
-  onExpand,
+  openEntryId,
+  onOpenEntry,
   onCopy,
   onEdit,
   onDelete,
@@ -117,30 +118,41 @@ export function CommandList({
     );
   }
 
+  const openEntry = entries.find((entry) => entry.id === openEntryId) ?? null;
+
   return (
-    <ul
-      className={`command-list command-list--${viewMode}`}
-      ref={listRef}
-      onKeyDown={onKeyDown}
-    >
-      {entries.map((entry) => (
-        <li
-          key={entry.id}
-          className={`command-list__item${expandedId === entry.id ? " is-expanded" : ""}`}
-        >
-          <CommandCard
-            entry={entry}
-            viewMode={viewMode}
-            expanded={expandedId === entry.id}
-            onToggle={() => onExpand(expandedId === entry.id ? null : entry.id)}
-            onCopy={(text) => onCopy(entry, text)}
-            onEdit={() => onEdit(entry)}
-            onDelete={() => onDelete(entry)}
-            onToggleFavorite={() => onToggleFavorite(entry)}
-            onOpenSource={onOpenSource}
-          />
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul
+        className={`command-list command-list--${viewMode}`}
+        ref={listRef}
+        onKeyDown={onKeyDown}
+      >
+        {entries.map((entry) => (
+          <li key={entry.id} className="command-list__item">
+            <CommandCard
+              entry={entry}
+              viewMode={viewMode}
+              onOpenDetails={() => onOpenEntry(entry.id)}
+              onCopy={(text) => onCopy(entry, text)}
+              onEdit={() => onEdit(entry)}
+              onDelete={() => onDelete(entry)}
+              onToggleFavorite={() => onToggleFavorite(entry)}
+            />
+          </li>
+        ))}
+      </ul>
+
+      {openEntry && (
+        <CommandDetailsDialog
+          entry={openEntry}
+          open
+          onClose={() => onOpenEntry(null)}
+          onCopy={(text) => onCopy(openEntry, text)}
+          onEdit={() => onEdit(openEntry)}
+          onDelete={() => onDelete(openEntry)}
+          onOpenSource={onOpenSource}
+        />
+      )}
+    </>
   );
 }

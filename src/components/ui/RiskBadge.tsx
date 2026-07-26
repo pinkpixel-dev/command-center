@@ -9,18 +9,26 @@ const ICONS = {
   destructive: AlertOctagon,
 } as const;
 
-/** Icon + word, never colour on its own. */
-export function RiskBadge({ risk, reasons = [] }: { risk: RiskLevel; reasons?: string[] }) {
+interface RiskBadgeProps {
+  risk: RiskLevel;
+  reasons?: string[];
+  iconOnly?: boolean;
+}
+
+/** The compact form keeps distinct shapes and an accessible label, not colour alone. */
+export function RiskBadge({ risk, reasons = [], iconOnly = false }: RiskBadgeProps) {
   const Icon = ICONS[risk];
   const label = riskLabel(risk);
+  const tooltip = reasons.length > 0 ? `${label}: ${reasons.join(". ")}` : `Risk: ${label}`;
 
   return (
     <span
-      className={`risk risk--${risk}`}
-      title={reasons.length > 0 ? reasons.join(". ") : `Risk: ${label}`}
+      className={`risk risk--${risk}${iconOnly ? " risk--icon" : ""}`}
+      title={tooltip}
+      aria-label={iconOnly ? tooltip : undefined}
     >
-      <Icon size={13} aria-hidden="true" />
-      {label}
+      <Icon size={iconOnly ? 17 : 13} aria-hidden="true" />
+      {!iconOnly && label}
     </span>
   );
 }

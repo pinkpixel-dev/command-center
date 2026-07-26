@@ -23,15 +23,19 @@
   display: flex;
 }
 
-.command-list--cards > .command-list__item.is-expanded {
-  grid-column: 1 / -1;
-}
-
 .card {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "head status"
+    "meta meta"
+    "code code"
+    "actions actions";
   gap: var(--space-3);
+  height: 236px;
   padding: var(--space-4);
+  overflow: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   background: var(--surface);
@@ -48,29 +52,20 @@
   border-color: var(--accent-border);
 }
 
-.card.is-expanded {
-  background: var(--surface-raised);
-}
-
 .card--cards {
   width: 100%;
 }
 
-.card--cards .card__actions {
-  margin-top: auto;
-}
-
-/* Compact mode uses two desktop scan rows: identity and metadata first,
-   followed by the command and its actions. Expanded details keep their full
-   width beneath both rows. */
+/* Compact mode stays at two scan rows. Long content scrolls inside the preview
+   instead of changing the height of the entry or the rows around it. */
 .card--compact {
-  display: grid;
-  grid-template-columns: minmax(13rem, 0.8fr) minmax(0, 1.2fr) auto;
+  grid-template-columns: minmax(13rem, 0.8fr) minmax(0, 1.2fr) auto auto;
+  grid-template-rows: auto 34px;
   grid-template-areas:
-    "head meta meta"
-    "code code actions"
-    "body body body";
+    "head meta status status"
+    "code code actions actions";
   gap: var(--space-2) var(--space-3);
+  height: 96px;
   padding: var(--space-3);
 }
 
@@ -79,23 +74,12 @@
   min-width: 0;
 }
 
-.card--compact .code {
-  grid-area: code;
-  min-width: 0;
+.card--compact .card__preview {
   padding: var(--space-2);
   line-height: 1.4;
 }
 
-.card--compact .code--clamped code {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .card--compact .card__meta {
-  grid-area: meta;
-  min-width: 0;
   flex-wrap: nowrap;
   overflow: hidden;
 }
@@ -104,18 +88,12 @@
   flex-shrink: 0;
 }
 
-.card--compact .card__body {
-  grid-area: body;
-}
-
-.card--compact .card__actions {
-  grid-area: actions;
-}
-
 .card__head {
+  grid-area: head;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: var(--space-2);
+  min-width: 0;
 }
 
 .card__toggle {
@@ -133,14 +111,13 @@
   font-weight: 500;
 }
 
-.card__chevron {
+.card__open-icon {
   flex-shrink: 0;
   color: var(--text-faint);
-  transition: transform var(--duration-fast) var(--ease);
 }
 
-.card.is-expanded .card__chevron {
-  transform: rotate(180deg);
+.card__toggle:hover .card__open-icon {
+  color: var(--text);
 }
 
 .card__title {
@@ -149,10 +126,12 @@
   white-space: nowrap;
 }
 
-.card__head-meta {
+.card__status {
+  grid-area: status;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  justify-content: flex-end;
+  min-width: 28px;
   flex-shrink: 0;
 }
 
@@ -163,50 +142,48 @@
   border-radius: var(--radius-md);
   background: var(--surface-inset);
   color: var(--text);
+  font-family: var(--font-mono);
   font-size: var(--text-sm);
   line-height: 1.6;
   overflow-x: auto;
   white-space: pre;
 }
 
-/* The clamp lives on the inner element so the block's own padding is not part
-   of the clamped box, which otherwise lets a fourth line peek through. */
-.code--clamped {
-  overflow: hidden;
+.card__preview {
+  grid-area: code;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  overflow: auto;
+  text-align: left;
+  cursor: pointer;
+  scrollbar-width: thin;
 }
 
-.code--clamped code {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  white-space: pre-wrap;
-  word-break: break-word;
+.card__preview:hover {
+  border-color: var(--border-strong);
+}
+
+.card__preview:focus-visible {
+  border-color: var(--accent-border);
+}
+
+.card__preview code {
+  display: block;
+  width: max-content;
+  min-width: 100%;
 }
 
 .card__meta {
+  grid-area: meta;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
-}
-
-.card__usage {
-  margin-left: auto;
-  font-size: var(--text-xs);
-  color: var(--text-faint);
-}
-
-.card__body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  padding-top: var(--space-1);
-  border-top: 1px solid var(--border);
-}
-
-.card__body[hidden] {
-  display: none;
+  min-width: 0;
+  max-height: 34px;
+  overflow: hidden;
 }
 
 .card__description {
@@ -231,7 +208,7 @@
   font-size: var(--text-sm);
 }
 
-.card[data-risk="destructive"] .card__warnings {
+.card__warnings[data-risk="destructive"] {
   background: var(--danger-quiet);
 }
 
@@ -304,17 +281,42 @@
 }
 
 .card__actions {
+  grid-area: actions;
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: var(--space-2);
 }
 
 .card__delete {
-  margin-left: auto;
+  color: var(--text-faint);
 }
 
 .card__delete:hover:not(:disabled) {
   color: var(--danger);
+}
+
+/* Full entry dialog -------------------------------------------------------- */
+
+.entry-dialog {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+.entry-dialog__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.entry-dialog__code {
+  width: 100%;
+  height: clamp(220px, 44vh, 480px);
+  overflow: auto;
+  scrollbar-width: thin;
 }
 
 /* List states -------------------------------------------------------------- */
@@ -407,29 +409,25 @@
 
 @media (max-width: 699px) {
   .card--compact {
-    display: flex;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      "head status"
+      "meta meta"
+      "code code"
+      "actions actions";
     gap: var(--space-3);
+    height: 228px;
     padding: var(--space-4);
   }
 
-  .card--compact .code {
+  .card--compact .card__preview {
     padding: var(--space-3);
     line-height: 1.6;
   }
 
-  .card--compact .code--clamped code {
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    white-space: pre-wrap;
-  }
-
   .card--compact .card__meta {
-    flex-wrap: wrap;
-    overflow: visible;
-  }
-
-  .card--compact .card__actions {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    overflow: hidden;
   }
 }

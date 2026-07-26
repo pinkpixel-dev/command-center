@@ -446,6 +446,15 @@
   color: var(--danger);
 }
 
+.risk--icon {
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+}
+
 .kbd-group {
   display: inline-flex;
   gap: 3px;

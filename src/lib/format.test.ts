@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  copySummary,
   firstLine,
   kindLabel,
   lineCount,
@@ -33,14 +32,6 @@ describe("relativeTime", () => {
   it("handles missing and broken values without throwing", () => {
     expect(relativeTime(null, now)).toBe("never");
     expect(relativeTime("not a date", now)).toBe("unknown");
-  });
-});
-
-describe("copySummary", () => {
-  it("reads naturally at zero, one and many", () => {
-    expect(copySummary({ copyCount: 0 })).toBe("Never copied");
-    expect(copySummary({ copyCount: 1 })).toBe("Copied once");
-    expect(copySummary({ copyCount: 18 })).toBe("Copied 18 times");
   });
 });
 

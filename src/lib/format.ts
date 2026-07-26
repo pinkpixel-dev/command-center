@@ -1,4 +1,4 @@
-import type { CommandEntry, CommandKind, RiskLevel, Scope } from "./types";
+import type { CommandKind, RiskLevel, Scope } from "./types";
 
 const KIND_LABELS: Record<CommandKind, string> = {
   command: "Command",
@@ -47,13 +47,6 @@ export function relativeTime(iso: string | null, now: Date = new Date()): string
     month: "short",
     year: then.getFullYear() === now.getFullYear() ? undefined : "numeric",
   });
-}
-
-/** "Copied 18 times" / "Never copied". */
-export function copySummary(entry: Pick<CommandEntry, "copyCount">): string {
-  if (entry.copyCount === 0) return "Never copied";
-  if (entry.copyCount === 1) return "Copied once";
-  return `Copied ${entry.copyCount} times`;
 }
 
 export function scopeTitle(scope: Scope): string {

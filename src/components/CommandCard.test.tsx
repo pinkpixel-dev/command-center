@@ -7,19 +7,17 @@ import { CommandCard } from "./CommandCard";
 
 function setup(props: Partial<Parameters<typeof CommandCard>[0]> = {}) {
   const handlers = {
-    onToggle: vi.fn(),
+    onOpenDetails: vi.fn(),
     onCopy: vi.fn(),
     onEdit: vi.fn(),
     onDelete: vi.fn(),
     onToggleFavorite: vi.fn(),
-    onOpenSource: vi.fn(),
   };
 
   const view = render(
     <CommandCard
       entry={makeEntry()}
       viewMode="compact"
-      expanded={false}
       {...handlers}
       {...props}
     />,
@@ -29,82 +27,46 @@ function setup(props: Partial<Parameters<typeof CommandCard>[0]> = {}) {
 }
 
 describe("CommandCard", () => {
-  it("shows the title, the command, and how often it was copied", () => {
+  it("shows the title and command without copy statistics", () => {
     setup();
 
     expect(screen.getByText("Update Arch packages")).toBeInTheDocument();
     expect(screen.getByText("sudo pacman -Syu")).toBeInTheDocument();
-    expect(screen.getByText(/Copied 18 times/)).toBeInTheDocument();
+    expect(screen.queryByText(/Copied 18 times/)).not.toBeInTheDocument();
     expect(screen.getByText("#arch")).toBeInTheDocument();
   });
 
-  it("labels risk with a word, not only a colour", () => {
+  it("uses a labelled icon for risk instead of visible badge text", () => {
     setup();
-    expect(screen.getByText("Caution")).toBeInTheDocument();
+
+    const risk = screen.getByLabelText(/Caution: Runs with elevated privileges/);
+    expect(risk).toHaveAttribute("title", expect.stringContaining("Caution"));
+    expect(screen.queryByText("Caution")).not.toBeInTheDocument();
   });
 
-  it("keeps safe entries free of a risk badge", () => {
+  it("keeps safe entries free of a risk icon", () => {
     setup({ entry: makeEntry({ riskLevel: "safe", riskReasons: [] }) });
-    expect(screen.queryByText("Safe")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Risk: Safe/)).not.toBeInTheDocument();
   });
 
-  it("reports its expanded state to assistive tech and toggles on click", async () => {
+  it("opens the full-entry dialog from the title or code preview", async () => {
     const user = userEvent.setup();
-    const { onToggle } = setup();
+    const { onOpenDetails } = setup();
 
-    const toggle = screen.getByRole("button", { name: "Update Arch packages" });
-    expect(toggle).toHaveAttribute("aria-expanded", "false");
-
-    await user.click(toggle);
-    expect(onToggle).toHaveBeenCalledOnce();
-  });
-
-  it("hides the details until it is expanded", () => {
-    const { rerender } = setup();
-    expect(screen.queryByText("Refresh every installed package")).not.toBeVisible();
-
-    rerender(
-      <CommandCard
-        entry={makeEntry()}
-        viewMode="compact"
-        expanded
-        onToggle={vi.fn()}
-        onCopy={vi.fn()}
-        onEdit={vi.fn()}
-        onDelete={vi.fn()}
-        onToggleFavorite={vi.fn()}
-        onOpenSource={vi.fn()}
-      />,
+    await user.click(screen.getByRole("button", { name: "Update Arch packages" }));
+    await user.click(
+      screen.getByRole("button", { name: "View full content for Update Arch packages" }),
     );
-    expect(screen.getByText("Refresh every installed package")).toBeVisible();
-    expect(screen.getByText("Runs with elevated privileges")).toBeVisible();
+
+    expect(onOpenDetails).toHaveBeenCalledTimes(2);
   });
 
-  it("copies the command as written when it has no placeholders", async () => {
+  it("copies the complete command from the icon action", async () => {
     const user = userEvent.setup();
     const { onCopy } = setup();
 
-    await user.click(screen.getByRole("button", { name: "Copy" }));
+    await user.click(screen.getByRole("button", { name: "Copy Update Arch packages" }));
     expect(onCopy).toHaveBeenCalledWith("sudo pacman -Syu");
-  });
-
-  it("copies the filled-in version of a templated command", async () => {
-    const user = userEvent.setup();
-    const entry = makeEntry({
-      id: 2,
-      title: "SSH in",
-      content: "ssh {{user}}@{{host}}",
-      variables: ["user", "host"],
-      riskLevel: "safe",
-      riskReasons: [],
-    });
-    const { onCopy } = setup({ entry, expanded: true });
-
-    await user.type(screen.getByLabelText("user"), "pinkpixel");
-    await user.type(screen.getByLabelText("host"), "10.0.0.4");
-    await user.click(screen.getByRole("button", { name: "Copy" }));
-
-    expect(onCopy).toHaveBeenCalledWith("ssh pinkpixel@10.0.0.4");
   });
 
   it("exposes favorite as a pressed toggle", async () => {
@@ -118,14 +80,24 @@ describe("CommandCard", () => {
     expect(onToggleFavorite).toHaveBeenCalledOnce();
   });
 
-  it("names the delete action after the entry it removes", () => {
+  it("uses accessible names and tooltips for icon-only actions", () => {
     setup();
-    expect(
-      screen.getByRole("button", { name: "Delete Update Arch packages" }),
-    ).toBeInTheDocument();
+
+    expect(screen.getByRole("button", { name: "Copy Update Arch packages" })).toHaveAttribute(
+      "title",
+      "Copy",
+    );
+    expect(screen.getByRole("button", { name: "Edit Update Arch packages" })).toHaveAttribute(
+      "title",
+      "Edit",
+    );
+    expect(screen.getByRole("button", { name: "Delete Update Arch packages" })).toHaveAttribute(
+      "title",
+      "Delete",
+    );
   });
 
-  it("marks the selected presentation mode for responsive styling", () => {
+  it("marks the selected presentation mode for fixed responsive styling", () => {
     const { container, rerender } = setup();
     expect(container.querySelector("article")).toHaveClass("card--compact");
 
@@ -133,13 +105,11 @@ describe("CommandCard", () => {
       <CommandCard
         entry={makeEntry()}
         viewMode="cards"
-        expanded={false}
-        onToggle={vi.fn()}
+        onOpenDetails={vi.fn()}
         onCopy={vi.fn()}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
         onToggleFavorite={vi.fn()}
-        onOpenSource={vi.fn()}
       />,
     );
 

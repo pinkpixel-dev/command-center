@@ -17,7 +17,7 @@ function setup(overrides: Partial<Parameters<typeof CommandList>[0]> = {}) {
     }),
   ];
   const handlers = {
-    onExpand: vi.fn(),
+    onOpenEntry: vi.fn(),
     onCopy: vi.fn(),
     onEdit: vi.fn(),
     onDelete: vi.fn(),
@@ -34,7 +34,7 @@ function setup(overrides: Partial<Parameters<typeof CommandList>[0]> = {}) {
       loading={false}
       error={null}
       searching={false}
-      expandedId={null}
+      openEntryId={null}
       {...handlers}
       {...overrides}
     />,
@@ -51,12 +51,13 @@ describe("CommandList", () => {
     expect(container.querySelectorAll(".card--compact")).toHaveLength(2);
   });
 
-  it("marks an expanded card-grid entry so it can span every column", () => {
-    const { container } = setup({ viewMode: "cards", expandedId: 2 });
+  it("opens details without changing the surrounding card grid", () => {
+    const { container } = setup({ viewMode: "cards", openEntryId: 2 });
 
     expect(container.querySelector(".command-list")).toHaveClass("command-list--cards");
     expect(container.querySelectorAll(".card--cards")).toHaveLength(2);
-    expect(container.querySelectorAll(".command-list__item")[1]).toHaveClass("is-expanded");
+    expect(container.querySelectorAll(".command-list__item")[1]).not.toHaveClass("is-expanded");
+    expect(screen.getByRole("dialog", { name: "Find a listening process" })).toBeInTheDocument();
   });
 
   it("keeps arrow-key navigation across command toggles", async () => {
