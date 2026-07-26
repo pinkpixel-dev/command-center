@@ -2,9 +2,12 @@
 
 mod client;
 mod credentials;
+pub mod import;
+pub mod prompts;
 pub mod redaction;
+mod transport;
 
-pub use client::{AiConnectionResult, OpenAiClient};
+pub use client::{AiConnectionResult, OpenAiClient, StructuredCall};
 pub use credentials::CredentialStore;
 
 pub const DEFAULT_MODEL: &str = "gpt-5.6-luna";

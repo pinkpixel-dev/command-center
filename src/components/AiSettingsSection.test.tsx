@@ -120,7 +120,7 @@ describe("AiSettingsSection", () => {
     );
 
     expect(
-      await screen.findByText(/Secure storage could not be verified/),
+      await screen.findByText(/Secure storage not verified/),
     ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Add key" }));
     await user.type(screen.getByLabelText("OpenAI API key"), "sk-test-value");
@@ -129,7 +129,7 @@ describe("AiSettingsSection", () => {
     expect(api.saveAiKey).toHaveBeenCalledWith("sk-test-value");
     expect(await screen.findByText("Key stored securely")).toBeInTheDocument();
     expect(
-      screen.queryByText(/Secure storage could not be verified/),
+      screen.queryByText(/Secure storage not verified/),
     ).not.toBeInTheDocument();
   });
 

@@ -1,4 +1,4 @@
-import { AlertTriangle, Copy, Scissors, Trash2 } from "lucide-react";
+import { AlertTriangle, Copy, Scissors, Sparkles, Trash2 } from "lucide-react";
 
 import { kindLabel } from "../../lib/format";
 import type { CandidateDraft, DuplicateAction } from "../../lib/import";
@@ -102,6 +102,19 @@ export function ImportCandidateCard({
         </div>
       )}
 
+      {(draft.aiRiskReasons.length > 0 || draft.aiNotes) && (
+        <div className="candidate__flag candidate__flag--ai" role="note">
+          <p>
+            <Sparkles size={14} aria-hidden="true" />
+            <span className="candidate__ai-label">From the model, and it may be wrong</span>
+          </p>
+          {draft.aiRiskReasons.length > 0 && (
+            <p className="candidate__ai-body">Risk notes: {draft.aiRiskReasons.join("; ")}</p>
+          )}
+          {draft.aiNotes && <p className="candidate__ai-body">Unsure about: {draft.aiNotes}</p>}
+        </div>
+      )}
+
       {draft.repeatedInDocument && !draft.duplicate && (
         <p className="candidate__flag" role="note">
           <Copy size={14} aria-hidden="true" />
@@ -157,7 +170,9 @@ export function ImportCandidateCard({
         {draft.headingPath.length > 0 && (
           <span className="candidate__source">{draft.headingPath.join(" › ")}</span>
         )}
-        <span className="candidate__source">line {draft.sourceLine}</span>
+        {draft.sourceLine > 0 && (
+          <span className="candidate__source">line {draft.sourceLine}</span>
+        )}
         {draft.droppedOutputLines > 0 && (
           <span className="candidate__source">
             {draft.droppedOutputLines} output {draft.droppedOutputLines === 1 ? "line" : "lines"}{" "}

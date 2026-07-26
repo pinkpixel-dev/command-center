@@ -3,6 +3,7 @@
 
 use std::path::Path;
 
+use serde::Serialize;
 use tauri::{AppHandle, State};
 
 use crate::db::Database;
@@ -20,6 +21,25 @@ const READABLE_EXTENSIONS: [&str; 9] = [
 /// A file bigger than this is not a cheat sheet, and parsing it would freeze
 /// the window for no good reason.
 const MAX_FILE_BYTES: u64 = 4 * 1024 * 1024;
+
+/// A document the user picked, read here so the webview never needs filesystem
+/// access of its own.
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportDocument {
+    pub name: Option<String>,
+    pub content: String,
+}
+
+#[tauri::command]
+pub fn read_import_document(path: String) -> AppResult<ImportDocument> {
+    Ok(ImportDocument {
+        name: Path::new(&path)
+            .file_name()
+            .map(|name| name.to_string_lossy().to_string()),
+        content: read_document(&path)?,
+    })
+}
 
 #[tauri::command]
 pub fn preview_import_text(

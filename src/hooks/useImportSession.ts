@@ -13,21 +13,34 @@ import type {
   ImportPreview,
   ImportSummary,
 } from "../lib/import";
+import type { AiImportPlan } from "../lib/ai-import";
 import { api, toAppError } from "../lib/ipc";
 
-export type ImportStage = "source" | "review" | "done";
+export type ImportStage = "source" | "disclose" | "review" | "done";
+
+/** The document waiting at the disclosure step, still on this machine. */
+export interface PendingDocument {
+  content: string;
+  sourceName: string | null;
+}
 
 export interface ImportSession {
   stage: ImportStage;
   busy: boolean;
   error: string | null;
+  plan: AiImportPlan | null;
+  pending: PendingDocument | null;
   preview: ImportPreview | null;
   drafts: CandidateDraft[];
   summary: ImportSummary | null;
   counts: ReturnType<typeof countDrafts>;
 
-  scanText: (content: string, sourceName?: string) => Promise<void>;
-  scanFile: (path: string) => Promise<void>;
+  /** Reads a document and builds the outbound-request summary. Local only. */
+  prepareText: (content: string) => Promise<void>;
+  prepareFile: (path: string) => Promise<void>;
+  /** The one action that sends the document to OpenAI. */
+  send: () => Promise<void>;
+  cancelSend: () => void;
   update: (id: string, changes: Partial<CandidateDraft>) => void;
   /** Content changed, so risk, kind, and duplicate status need recalculating. */
   reanalyze: (id: string) => Promise<void>;
@@ -41,39 +54,71 @@ export interface ImportSession {
   dismissError: () => void;
 }
 
-/** Holds one trip through the importer: scan, review, import. */
+/** Holds one trip through the importer: read, disclose, send, review, import. */
 export function useImportSession(defaultCollectionIds: number[] = []): ImportSession {
   const [stage, setStage] = useState<ImportStage>("source");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [plan, setPlan] = useState<AiImportPlan | null>(null);
+  const [pending, setPending] = useState<PendingDocument | null>(null);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [drafts, setDrafts] = useState<CandidateDraft[]>([]);
   const [summary, setSummary] = useState<ImportSummary | null>(null);
 
-  const load = useCallback(
-    async (loader: () => Promise<ImportPreview>) => {
-      setBusy(true);
-      setError(null);
-      try {
-        const result = await loader();
-        setPreview(result);
-        setDrafts(toDrafts(result.candidates, defaultCollectionIds));
-        setStage("review");
-      } catch (caught) {
-        setError(toAppError(caught).message);
-      } finally {
-        setBusy(false);
-      }
-    },
-    [defaultCollectionIds],
+  const prepare = useCallback(async (reader: () => Promise<PendingDocument>) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const document = await reader();
+      // Redaction and the size check happen in Rust before anything is sent,
+      // so a rejected document never reaches the disclosure step.
+      const summary = await api.prepareAiImport(document.content);
+      setPending(document);
+      setPlan(summary);
+      setStage("disclose");
+    } catch (caught) {
+      setError(toAppError(caught).message);
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  const prepareText = useCallback(
+    (content: string) => prepare(async () => ({ content, sourceName: null })),
+    [prepare],
   );
 
-  const scanText = useCallback(
-    (content: string, sourceName?: string) => load(() => api.previewImportText(content, sourceName)),
-    [load],
+  const prepareFile = useCallback(
+    (path: string) =>
+      prepare(async () => {
+        const document = await api.readImportDocument(path);
+        return { content: document.content, sourceName: document.name };
+      }),
+    [prepare],
   );
 
-  const scanFile = useCallback((path: string) => load(() => api.previewImportFile(path)), [load]);
+  const send = useCallback(async () => {
+    if (!pending) return;
+
+    setBusy(true);
+    setError(null);
+    try {
+      const result = await api.runAiImport(pending.content, pending.sourceName);
+      setPreview(result);
+      setDrafts(toDrafts(result.candidates, defaultCollectionIds));
+      setStage("review");
+    } catch (caught) {
+      setError(toAppError(caught).message);
+    } finally {
+      setBusy(false);
+    }
+  }, [defaultCollectionIds, pending]);
+
+  const cancelSend = useCallback(() => {
+    setPlan(null);
+    setError(null);
+    setStage("source");
+  }, []);
 
   const update = useCallback((id: string, changes: Partial<CandidateDraft>) => {
     setDrafts((current) =>
@@ -176,6 +221,8 @@ export function useImportSession(defaultCollectionIds: number[] = []): ImportSes
 
   const reset = useCallback(() => {
     setStage("source");
+    setPlan(null);
+    setPending(null);
     setPreview(null);
     setDrafts([]);
     setSummary(null);
@@ -188,12 +235,16 @@ export function useImportSession(defaultCollectionIds: number[] = []): ImportSes
     stage,
     busy,
     error,
+    plan,
+    pending,
     preview,
     drafts,
     summary,
     counts,
-    scanText,
-    scanFile,
+    prepareText,
+    prepareFile,
+    send,
+    cancelSend,
     update,
     reanalyze,
     setSelectionForAll,

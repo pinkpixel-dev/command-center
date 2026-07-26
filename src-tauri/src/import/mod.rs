@@ -2,6 +2,7 @@
 //! the classification, and the duplicate check. Nothing is written to the
 //! library until the user picks entries in the review screen.
 
+pub mod ai_candidates;
 pub mod apply;
 pub mod classify;
 pub mod naming;
@@ -33,6 +34,12 @@ pub struct Candidate {
     pub tags: Vec<String>,
     pub risk_level: RiskLevel,
     pub risk_reasons: Vec<String>,
+    /// Reasons the model gave, kept apart from the local ones so the review
+    /// screen can label them and the user can tell them apart. Always empty for
+    /// a local parse.
+    pub ai_risk_reasons: Vec<String>,
+    /// What the model said it was unsure about. None for a local parse.
+    pub ai_notes: Option<String>,
     pub variables: Vec<String>,
     pub heading_path: Vec<String>,
     pub source_line: usize,
@@ -166,6 +173,8 @@ pub fn preview(
             heading_path: block.heading_path.clone(),
             source_line: block.line,
             repeated_in_document: repeated,
+            ai_risk_reasons: Vec::new(),
+            ai_notes: None,
             risk_level,
             risk_reasons,
             duplicate,

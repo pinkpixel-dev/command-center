@@ -7,8 +7,10 @@ import { Button } from "../ui/Button";
 
 export interface ImportSourceProps {
   busy: boolean;
-  onScanFile: (path: string) => void;
-  onScanText: (content: string) => void;
+  /** Restores the pasted text when the user backs out of the disclosure step. */
+  initialText?: string;
+  onReadFile: (path: string) => void;
+  onReadText: (content: string) => void;
 }
 
 const FILE_FILTERS = [
@@ -16,15 +18,20 @@ const FILE_FILTERS = [
 ];
 
 /** Step one: get a document in. Drop it, pick it, or paste it. */
-export function ImportSource({ busy, onScanFile, onScanText }: ImportSourceProps) {
-  const [text, setText] = useState("");
+export function ImportSource({
+  busy,
+  initialText = "",
+  onReadFile,
+  onReadText,
+}: ImportSourceProps) {
+  const [text, setText] = useState(initialText);
   const [hovering, setHovering] = useState(false);
   const [dropError, setDropError] = useState<string | null>(null);
 
   // Held in a ref so the subscription below can run exactly once, no matter how
   // often the parent re-renders with a fresh callback.
-  const scanFileRef = useRef(onScanFile);
-  scanFileRef.current = onScanFile;
+  const readFileRef = useRef(onReadFile);
+  readFileRef.current = onReadFile;
 
   // Tauri reports drops at the window level, so this listener lives with the
   // only screen that wants them.
@@ -39,7 +46,7 @@ export function ImportSource({ busy, onScanFile, onScanText }: ImportSourceProps
         const [first] = event.payload.paths;
         if (first) {
           setDropError(null);
-          scanFileRef.current(first);
+          readFileRef.current(first);
         } else {
           setDropError("That drop did not contain a file");
         }
@@ -56,7 +63,7 @@ export function ImportSource({ busy, onScanFile, onScanText }: ImportSourceProps
   const pickFile = async () => {
     const selected = await open({ multiple: false, directory: false, filters: FILE_FILTERS });
     if (typeof selected === "string") {
-      onScanFile(selected);
+      onReadFile(selected);
     }
   };
 
@@ -68,8 +75,9 @@ export function ImportSource({ busy, onScanFile, onScanText }: ImportSourceProps
           {hovering ? "Drop it anywhere" : "Drop a Markdown or text file here"}
         </p>
         <p className="dropzone__body">
-          README files, cheat sheets, documentation excerpts, or your own notes. Nothing is saved
-          until you review what was found.
+          README files, cheat sheets, documentation excerpts, or your own notes. You see exactly
+          what would be sent to OpenAI before it leaves this machine, and nothing is saved until
+          you review what comes back.
         </p>
         <Button variant="secondary" onClick={() => void pickFile()} disabled={busy}>
           <FolderOpen size={15} aria-hidden="true" />
@@ -98,12 +106,12 @@ export function ImportSource({ busy, onScanFile, onScanText }: ImportSourceProps
         <div className="import-source__actions">
           <Button
             variant="primary"
-            onClick={() => onScanText(text)}
+            onClick={() => onReadText(text)}
             disabled={text.trim().length === 0}
             loading={busy}
           >
             <ScanLine size={15} aria-hidden="true" />
-            Scan for commands
+            Check what would be sent
           </Button>
           {text.trim().length > 0 && (
             <Button variant="ghost" onClick={() => setText("")} disabled={busy}>

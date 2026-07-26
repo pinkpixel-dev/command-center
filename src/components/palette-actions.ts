@@ -2,6 +2,7 @@ import {
   Clock,
   DatabaseBackup,
   Download,
+  FileInput,
   FolderCog,
   HelpCircle,
   Keyboard,
@@ -26,9 +27,24 @@ export interface PaletteActionHandlers {
   onHelp: () => void;
   onShortcuts: () => void;
   onSettings: () => void;
+  /** Only provided when AI is on and a key is stored. */
+  onImport?: () => void;
 }
 
 export function createPaletteActions(handlers: PaletteActionHandlers): PaletteAction[] {
+  const importAction: PaletteAction[] = handlers.onImport
+    ? [
+        {
+          id: "import-document",
+          label: "Import from a document",
+          description: "Pull commands out of a cheat sheet with OpenAI",
+          icon: FileInput,
+          keywords: ["ai", "openai", "markdown", "readme"],
+          onSelect: handlers.onImport,
+        },
+      ]
+    : [];
+
   return [
     {
       id: "add-command",
@@ -74,6 +90,7 @@ export function createPaletteActions(handlers: PaletteActionHandlers): PaletteAc
       icon: Terminal,
       onSelect: () => handlers.onScopeChange({ type: "scripts" }),
     },
+    ...importAction,
     {
       id: "manage-collections",
       label: "Manage collections",

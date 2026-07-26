@@ -92,6 +92,7 @@ pub fn run() {
             ipc::library::create_collection,
             ipc::library::update_collection,
             ipc::library::delete_collection,
+            ipc::import::read_import_document,
             ipc::import::preview_import_text,
             ipc::import::preview_import_file,
             ipc::import::analyze_snippet,
@@ -105,6 +106,8 @@ pub fn run() {
             ipc::ai::save_ai_key,
             ipc::ai::remove_ai_key,
             ipc::ai::test_ai_connection,
+            ipc::ai_import::prepare_ai_import,
+            ipc::ai_import::run_ai_import,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Command Center");

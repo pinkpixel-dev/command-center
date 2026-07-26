@@ -1,5 +1,6 @@
 import { useImportSession } from "../../hooks/useImportSession";
 import type { Collection } from "../../lib/types";
+import { ImportDisclosure } from "./ImportDisclosure";
 import { ImportDone } from "./ImportDone";
 import { ImportReview } from "./ImportReview";
 import { ImportSource } from "./ImportSource";
@@ -39,8 +40,19 @@ export function ImportView({
       {session.stage === "source" && (
         <ImportSource
           busy={session.busy}
-          onScanFile={(path) => void session.scanFile(path)}
-          onScanText={(content) => void session.scanText(content)}
+          initialText={session.pending?.sourceName ? "" : (session.pending?.content ?? "")}
+          onReadFile={(path) => void session.prepareFile(path)}
+          onReadText={(content) => void session.prepareText(content)}
+        />
+      )}
+
+      {session.stage === "disclose" && session.plan && (
+        <ImportDisclosure
+          plan={session.plan}
+          sourceName={session.pending?.sourceName ?? null}
+          busy={session.busy}
+          onSend={() => void session.send()}
+          onCancel={session.cancelSend}
         />
       )}
 

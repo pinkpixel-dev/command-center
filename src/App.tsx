@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { CollectionActions } from "./components/CollectionActions";
 import { CollectionManager } from "./components/CollectionManager";
@@ -17,6 +17,7 @@ import { Sidebar } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
 import { Button } from "./components/ui/Button";
 import { useToast } from "./components/ui/Toast";
+import { useAiStatus } from "./hooks/useAiStatus";
 import { useCommandActions } from "./hooks/useCommandActions";
 import { useDebounced } from "./hooks/useDebounced";
 import { useHotkeys } from "./hooks/useHotkeys";
@@ -89,6 +90,18 @@ export default function App() {
 
   const { entries, stats, tags, collections, loading, error, refresh } = useLibrary(filter);
   const actions = useCommandActions(refresh);
+  const ai = useAiStatus(settings.aiEnabled);
+
+  // Settings is where a key is added or removed, so the AI-backed entry points
+  // are re-checked as soon as the user leaves that screen.
+  useEffect(() => {
+    if (view !== "settings") ai.refresh();
+  }, [ai.refresh, view]);
+
+  // Turning AI off while Import is open must not leave the user on that screen.
+  useEffect(() => {
+    if (view === "import" && !ai.importReady) setView("library");
+  }, [ai.importReady, view]);
 
   const openCreate = useCallback(() => {
     setFormError(null);
@@ -257,6 +270,7 @@ export default function App() {
     onHelp: openHelp,
     onShortcuts: openShortcuts,
     onSettings: () => openView("settings"),
+    onImport: ai.importReady ? () => openView("import") : undefined,
   });
 
   return (
@@ -272,7 +286,9 @@ export default function App() {
           collections={collections}
           scope={scope}
           view={view}
+          importAvailable={ai.importReady}
           onScopeChange={changeScope}
+          onOpenImport={() => openView("import")}
           onOpenPalette={openPalette}
           onOpenHelp={openHelp}
           onOpenShortcuts={openShortcuts}
@@ -310,11 +326,11 @@ export default function App() {
           </>
         )}
 
-        {view === "import" && (
+        {view === "import" && ai.importReady && (
           <>
             <ViewHeader
               title="Import"
-              subtitle="Pull commands out of a cheat sheet, README, or your own notes. Parsed on this machine."
+              subtitle="Pull commands out of a cheat sheet, README, or your own notes. Read here, sent to OpenAI only after you say so."
               onOpenMenu={() => setNavOpen(true)}
               actions={
                 <Button variant="secondary" size="sm" onClick={() => setView("library")}>

@@ -46,7 +46,9 @@ describe("library navigation", () => {
         collections={[]}
         scope={{ type: "all" }}
         view="library"
+        importAvailable={false}
         onScopeChange={vi.fn()}
+        onOpenImport={vi.fn()}
         onOpenPalette={onOpenPalette}
         onOpenHelp={onOpenHelp}
         onOpenShortcuts={onOpenShortcuts}
@@ -74,5 +76,32 @@ describe("library navigation", () => {
     expect(screen.queryByRole("button", { name: "Import" })).not.toBeInTheDocument();
     expect(container.querySelector(".sidebar__logo")).toHaveAttribute("src", "/logo.png");
     expect(screen.queryByText(/^v\d/)).not.toBeInTheDocument();
+  });
+
+  it("shows Import only once AI is on with a stored key", async () => {
+    const user = userEvent.setup();
+    const onOpenImport = vi.fn();
+
+    render(
+      <Sidebar
+        stats={{ total: 3, favorites: 1, recent: 2, scripts: 0 }}
+        tags={[]}
+        collections={[]}
+        scope={{ type: "all" }}
+        view="library"
+        importAvailable
+        onScopeChange={vi.fn()}
+        onOpenImport={onOpenImport}
+        onOpenPalette={vi.fn()}
+        onOpenHelp={vi.fn()}
+        onOpenShortcuts={vi.fn()}
+        onOpenSettings={vi.fn()}
+        onManageCollections={vi.fn()}
+        onDismiss={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Import" }));
+    expect(onOpenImport).toHaveBeenCalledOnce();
   });
 });

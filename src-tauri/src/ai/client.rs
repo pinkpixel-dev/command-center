@@ -1,16 +1,19 @@
-//! Minimal Responses API client used by every future AI workflow.
+//! Responses API client. Every AI workflow goes through one structured call,
+//! so timeouts, privacy defaults, and response validation stay in one place.
 
 use std::time::Duration;
 
-use reqwest::{redirect::Policy, Client, StatusCode};
+use reqwest::{redirect::Policy, Client};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::Value;
 
+use crate::ai::prompts::{self, StructuredTask};
+use crate::ai::transport::{map_provider_error, map_transport_error, read_bounded_body};
 use crate::error::{AppError, AppResult};
 
 const RESPONSES_URL: &str = "https://api.openai.com/v1/responses";
-const MAX_OUTPUT_TOKENS: u16 = 512;
-const MAX_RESPONSE_BYTES: usize = 256 * 1024;
+const CONNECTION_TEST_TOKENS: u32 = 512;
+const CONNECTION_TEST_TIMEOUT: Duration = Duration::from_secs(45);
 
 #[derive(Debug, Clone)]
 pub struct OpenAiClient {
@@ -21,6 +24,16 @@ pub struct OpenAiClient {
 #[serde(rename_all = "camelCase")]
 pub struct AiConnectionResult {
     pub model: String,
+}
+
+/// One strictly structured request. The caller owns the task definition, the
+/// budget, and how long it is willing to wait.
+pub struct StructuredCall<'a> {
+    pub model: &'a str,
+    pub task: &'a StructuredTask,
+    pub input: &'a str,
+    pub max_output_tokens: u32,
+    pub timeout: Duration,
 }
 
 impl OpenAiClient {
@@ -36,16 +49,15 @@ impl OpenAiClient {
         Ok(Self { client })
     }
 
-    pub async fn test_connection(
-        &self,
-        api_key: &str,
-        model: &str,
-    ) -> AppResult<AiConnectionResult> {
+    /// Sends one request and returns the structured JSON text the model
+    /// produced. Refusals, incomplete runs, and missing output are errors.
+    pub async fn structured_json(&self, api_key: &str, call: StructuredCall<'_>) -> AppResult<String> {
         let mut response = self
             .client
             .post(RESPONSES_URL)
+            .timeout(call.timeout)
             .bearer_auth(api_key)
-            .json(&connection_test_request(model))
+            .json(&structured_request(&call))
             .send()
             .await
             .map_err(map_transport_error)?;
@@ -54,16 +66,41 @@ impl OpenAiClient {
         let body = read_bounded_body(&mut response).await?;
 
         if !status.is_success() {
-            let provider_error = serde_json::from_slice::<ProviderErrorEnvelope>(&body)
-                .ok()
-                .and_then(|envelope| envelope.error);
-            return Err(map_provider_error(status, provider_error.as_ref()));
+            return Err(map_provider_error(status, &body));
         }
 
         let parsed: ResponsesApiResponse = serde_json::from_slice(&body).map_err(|_| {
             AppError::AiMalformed("OpenAI returned a response the app could not read.".into())
         })?;
-        validate_connection_response(&parsed)?;
+        structured_output(&parsed).map(str::to_owned)
+    }
+
+    pub async fn test_connection(
+        &self,
+        api_key: &str,
+        model: &str,
+    ) -> AppResult<AiConnectionResult> {
+        let output = self
+            .structured_json(
+                api_key,
+                StructuredCall {
+                    model,
+                    task: prompts::connection_test(),
+                    input: prompts::CONNECTION_TEST_INPUT,
+                    max_output_tokens: CONNECTION_TEST_TOKENS,
+                    timeout: CONNECTION_TEST_TIMEOUT,
+                },
+            )
+            .await?;
+
+        let parsed: ConnectionTestOutput = serde_json::from_str(&output).map_err(|_| {
+            AppError::AiMalformed("OpenAI returned invalid structured connection-test output.".into())
+        })?;
+        if !parsed.ready {
+            return Err(AppError::AiMalformed(
+                "OpenAI did not confirm the connection test.".into(),
+            ));
+        }
 
         Ok(AiConnectionResult {
             model: model.to_owned(),
@@ -74,47 +111,41 @@ impl OpenAiClient {
 #[derive(Debug, Serialize)]
 struct ResponsesApiRequest<'a> {
     model: &'a str,
-    instructions: &'static str,
-    input: &'static str,
+    instructions: &'a str,
+    input: &'a str,
     store: bool,
-    max_output_tokens: u16,
-    text: TextConfiguration,
+    max_output_tokens: u32,
+    text: TextConfiguration<'a>,
 }
 
 #[derive(Debug, Serialize)]
-struct TextConfiguration {
-    format: StructuredOutputFormat,
+struct TextConfiguration<'a> {
+    format: StructuredOutputFormat<'a>,
 }
 
 #[derive(Debug, Serialize)]
-struct StructuredOutputFormat {
+struct StructuredOutputFormat<'a> {
     #[serde(rename = "type")]
     kind: &'static str,
     name: &'static str,
     strict: bool,
-    schema: Value,
+    schema: &'a Value,
 }
 
-fn connection_test_request(model: &str) -> ResponsesApiRequest<'_> {
+fn structured_request<'a>(call: &'a StructuredCall<'a>) -> ResponsesApiRequest<'a> {
     ResponsesApiRequest {
-        model,
-        instructions: "Return the requested connection readiness object.",
-        input: "Confirm that this Responses API request succeeded.",
+        model: call.model,
+        instructions: call.task.instructions,
+        input: call.input,
+        // Command Center keeps no history with the provider.
         store: false,
-        max_output_tokens: MAX_OUTPUT_TOKENS,
+        max_output_tokens: call.max_output_tokens,
         text: TextConfiguration {
             format: StructuredOutputFormat {
                 kind: "json_schema",
-                name: "command_center_connection_test",
+                name: call.task.name,
                 strict: true,
-                schema: json!({
-                    "type": "object",
-                    "properties": {
-                        "ready": { "type": "boolean", "enum": [true] }
-                    },
-                    "required": ["ready"],
-                    "additionalProperties": false
-                }),
+                schema: &call.task.schema,
             },
         },
     }
@@ -148,13 +179,7 @@ struct ConnectionTestOutput {
     ready: bool,
 }
 
-fn validate_connection_response(response: &ResponsesApiResponse) -> AppResult<()> {
-    if response.status != "completed" {
-        return Err(AppError::AiIncomplete(
-            "OpenAI did not complete the connection test.".into(),
-        ));
-    }
-
+fn structured_output(response: &ResponsesApiResponse) -> AppResult<&str> {
     if response
         .output
         .iter()
@@ -164,106 +189,45 @@ fn validate_connection_response(response: &ResponsesApiResponse) -> AppResult<()
         return Err(AppError::AiRefusal);
     }
 
-    let output_text = response
+    if response.status != "completed" {
+        return Err(AppError::AiIncomplete(
+            "OpenAI stopped before it finished the response. Try a smaller document.".into(),
+        ));
+    }
+
+    response
         .output
         .iter()
         .flat_map(|item| &item.content)
         .find(|content| content.kind == "output_text")
         .and_then(|content| content.text.as_deref())
-        .ok_or_else(|| {
-            AppError::AiMalformed("OpenAI returned no structured connection-test output.".into())
-        })?;
-
-    let output: ConnectionTestOutput = serde_json::from_str(output_text).map_err(|_| {
-        AppError::AiMalformed("OpenAI returned invalid structured connection-test output.".into())
-    })?;
-    if !output.ready {
-        return Err(AppError::AiMalformed(
-            "OpenAI did not confirm the connection test.".into(),
-        ));
-    }
-    Ok(())
-}
-
-#[derive(Debug, Deserialize)]
-struct ProviderErrorEnvelope {
-    error: Option<ProviderError>,
-}
-
-#[derive(Debug, Deserialize)]
-struct ProviderError {
-    #[serde(default)]
-    code: Option<String>,
-}
-
-fn map_transport_error(error: reqwest::Error) -> AppError {
-    if error.is_timeout() && error.is_connect() {
-        AppError::ai_network("Connecting to OpenAI timed out. Try again.")
-    } else if error.is_timeout() {
-        AppError::ai_network("OpenAI did not respond before the request timed out. Try again.")
-    } else {
-        AppError::ai_network("Could not reach OpenAI. Check the network connection and try again.")
-    }
-}
-
-async fn read_bounded_body(response: &mut reqwest::Response) -> AppResult<Vec<u8>> {
-    if response
-        .content_length()
-        .is_some_and(|length| length > MAX_RESPONSE_BYTES as u64)
-    {
-        return Err(AppError::AiResponseTooLarge);
-    }
-
-    let mut body = Vec::new();
-    while let Some(chunk) = response.chunk().await.map_err(map_transport_error)? {
-        append_response_chunk(&mut body, &chunk)?;
-    }
-    Ok(body)
-}
-
-fn append_response_chunk(body: &mut Vec<u8>, chunk: &[u8]) -> AppResult<()> {
-    if body.len().saturating_add(chunk.len()) > MAX_RESPONSE_BYTES {
-        return Err(AppError::AiResponseTooLarge);
-    }
-    body.extend_from_slice(chunk);
-    Ok(())
-}
-
-fn map_provider_error(status: StatusCode, error: Option<&ProviderError>) -> AppError {
-    let code = error.and_then(|details| details.code.as_deref());
-    if code == Some("model_not_found") {
-        return AppError::ai_model(
-            "The selected model was not found or is not available to this OpenAI account.",
-        );
-    }
-    match status {
-        StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => {
-            AppError::ai_auth("OpenAI rejected the stored API key or its permissions.")
-        }
-        StatusCode::TOO_MANY_REQUESTS => AppError::ai_rate_limit(
-            "OpenAI rate-limited the request or the account has no available quota.",
-        ),
-        StatusCode::BAD_REQUEST => AppError::ai_response(
-            "The selected model rejected the required Responses API structured-output request.",
-        ),
-        status if status.is_server_error() => {
-            AppError::ai_response("OpenAI is temporarily unavailable. Try again later.")
-        }
-        _ => AppError::ai_response("OpenAI rejected the connection test."),
-    }
+        .ok_or_else(|| AppError::AiMalformed("OpenAI returned no structured output.".into()))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
+    use std::time::Duration;
+
+    fn call<'a>(model: &'a str, input: &'a str) -> StructuredCall<'a> {
+        StructuredCall {
+            model,
+            task: prompts::connection_test(),
+            input,
+            max_output_tokens: CONNECTION_TEST_TOKENS,
+            timeout: CONNECTION_TEST_TIMEOUT,
+        }
+    }
 
     #[test]
-    fn connection_request_is_bounded_private_and_strictly_structured() {
-        let request = serde_json::to_value(connection_test_request("gpt-test")).unwrap();
+    fn requests_are_bounded_private_and_strictly_structured() {
+        let outgoing = call("gpt-test", prompts::CONNECTION_TEST_INPUT);
+        let request = serde_json::to_value(structured_request(&outgoing)).unwrap();
 
         assert_eq!(request["model"], "gpt-test");
         assert_eq!(request["store"], false);
-        assert_eq!(request["max_output_tokens"], MAX_OUTPUT_TOKENS);
+        assert_eq!(request["max_output_tokens"], CONNECTION_TEST_TOKENS);
         assert_eq!(request["text"]["format"]["type"], "json_schema");
         assert_eq!(request["text"]["format"]["strict"], true);
         assert_eq!(
@@ -271,57 +235,57 @@ mod tests {
             false
         );
         assert!(request.get("api_key").is_none());
+        assert!(request.get("previous_response_id").is_none());
+    }
+
+    #[test]
+    fn the_caller_decides_the_budget_and_the_wait() {
+        let task = prompts::import_extraction();
+        let outgoing = StructuredCall {
+            model: "gpt-test",
+            task,
+            input: "document",
+            max_output_tokens: 4_096,
+            timeout: Duration::from_secs(120),
+        };
+        let request = serde_json::to_value(structured_request(&outgoing)).unwrap();
+
+        assert_eq!(request["max_output_tokens"], 4_096);
+        assert_eq!(
+            request["text"]["format"]["name"],
+            "command_center_import_extraction"
+        );
+        assert_eq!(request["instructions"], task.instructions);
+    }
+
+    fn response(value: serde_json::Value) -> ResponsesApiResponse {
+        serde_json::from_value(value).unwrap()
     }
 
     #[test]
     fn completed_structured_output_is_required() {
-        let valid: ResponsesApiResponse = serde_json::from_value(json!({
+        let valid = response(json!({
             "status": "completed",
-            "output": [{
-                "content": [{
-                    "type": "output_text",
-                    "text": "{\"ready\":true}"
-                }]
-            }]
-        }))
-        .unwrap();
-        assert!(validate_connection_response(&valid).is_ok());
+            "output": [{ "content": [{ "type": "output_text", "text": "{\"ready\":true}" }] }]
+        }));
+        assert_eq!(structured_output(&valid).unwrap(), "{\"ready\":true}");
 
-        let incomplete: ResponsesApiResponse = serde_json::from_value(json!({
-            "status": "incomplete",
-            "output": []
-        }))
-        .unwrap();
-        assert!(validate_connection_response(&incomplete).is_err());
+        let incomplete = response(json!({ "status": "incomplete", "output": [] }));
+        assert_eq!(
+            structured_output(&incomplete).unwrap_err().kind(),
+            "ai_incomplete"
+        );
+
+        let empty = response(json!({ "status": "completed", "output": [] }));
+        assert_eq!(structured_output(&empty).unwrap_err().kind(), "ai_malformed");
     }
 
     #[test]
-    fn provider_failures_have_distinct_error_kinds() {
-        let model_error = ProviderError {
-            code: Some("model_not_found".into()),
-        };
-        assert_eq!(
-            map_provider_error(StatusCode::NOT_FOUND, Some(&model_error)).kind(),
-            "ai_model"
-        );
-        assert_eq!(
-            map_provider_error(StatusCode::UNAUTHORIZED, None).kind(),
-            "ai_auth"
-        );
-        assert_eq!(
-            map_provider_error(StatusCode::TOO_MANY_REQUESTS, None).kind(),
-            "ai_rate_limit"
-        );
-    }
-
-    #[test]
-    fn response_body_limit_is_enforced_without_allocating_past_the_cap() {
-        let mut body = vec![0; MAX_RESPONSE_BYTES - 2];
-        append_response_chunk(&mut body, &[1, 2]).unwrap();
-        assert_eq!(body.len(), MAX_RESPONSE_BYTES);
-
-        let error = append_response_chunk(&mut body, &[3]).unwrap_err();
-        assert_eq!(error.kind(), "ai_response_too_large");
-        assert_eq!(body.len(), MAX_RESPONSE_BYTES);
+    fn a_refusal_is_reported_as_a_refusal_even_when_the_run_completed() {
+        let refused = response(json!({
+            "status": "completed",
+            "output": [{ "content": [{ "type": "refusal", "refusal": "no" }] }]
+        }));
+        assert_eq!(structured_output(&refused).unwrap_err().kind(), "ai_refusal");
     }
 }

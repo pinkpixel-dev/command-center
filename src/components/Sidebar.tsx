@@ -2,6 +2,7 @@ import {
   Clock,
   Command,
   Ellipsis,
+  FileInput,
   HelpCircle,
   Keyboard,
   Library,
@@ -22,7 +23,10 @@ export interface SidebarProps {
   collections: Collection[];
   scope: Scope;
   view: AppView;
+  /** Import is an AI workflow, so it only appears with AI on and a key stored. */
+  importAvailable: boolean;
   onScopeChange: (scope: Scope) => void;
+  onOpenImport: () => void;
   onOpenPalette: () => void;
   onOpenHelp: () => void;
   onOpenShortcuts: () => void;
@@ -44,7 +48,9 @@ export function Sidebar({
   collections,
   scope,
   view,
+  importAvailable,
   onScopeChange,
+  onOpenImport,
   onOpenPalette,
   onOpenHelp,
   onOpenShortcuts,
@@ -159,6 +165,18 @@ export function Sidebar({
       )}
 
       <div className="sidebar__footer">
+        {importAvailable && (
+          <button
+            type="button"
+            className={`nav-item${view === "import" ? " is-active" : ""}`}
+            aria-current={view === "import" ? "page" : undefined}
+            onClick={onOpenImport}
+          >
+            <FileInput size={15} aria-hidden="true" />
+            <span className="nav-item__label">Import</span>
+          </button>
+        )}
+
         <button
           type="button"
           className="nav-item"

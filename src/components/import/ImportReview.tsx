@@ -54,7 +54,7 @@ export function ImportReview({
           </strong>
           <span className="field__hint">
             {preview.sourceName ? `${preview.sourceName} · ` : ""}
-            {preview.stats.blocksFound} blocks found
+            {preview.stats.blocksFound} suggested
             {counts.output > 0 ? ` · ${counts.output} look like output` : ""}
             {counts.duplicates > 0 ? ` · ${counts.duplicates} already saved` : ""}
           </span>
@@ -90,6 +90,12 @@ export function ImportReview({
         </div>
       </div>
 
+      <p className="field__hint import-review__origin" role="note">
+        These entries came from OpenAI and may be wrong. Command Center re-checked every one on
+        this machine for risk, terminal output, placeholders, and duplicates. Nothing is saved
+        until you import it.
+      </p>
+
       {preview.suggestedCollection && collections.length === 0 && (
         <p className="field__hint import-review__suggestion">
           This document looks like it belongs in a collection called "{preview.suggestedCollection}".
@@ -101,7 +107,7 @@ export function ImportReview({
         <EmptyState
           icon={FileQuestion}
           title="Nothing to import"
-          body="No code blocks, indented commands, or prompt lines turned up in that document."
+          body="Nothing in that document came back as something worth saving. A document with code blocks or clearly written commands usually does better."
           action={
             <Button variant="secondary" onClick={onBack}>
               Try another document

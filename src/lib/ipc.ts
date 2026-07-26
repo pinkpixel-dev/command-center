@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 
+import type { AiImportPlan, ImportDocument } from "./ai-import";
 import type {
   ImportItem,
   ImportPreview,
@@ -71,6 +72,11 @@ export const api = {
   updateCollection: (id: number, input: CollectionInput) =>
     call<Collection[]>("update_collection", { id, input }),
   deleteCollection: (id: number) => call<Collection[]>("delete_collection", { id }),
+
+  readImportDocument: (path: string) => call<ImportDocument>("read_import_document", { path }),
+  prepareAiImport: (content: string) => call<AiImportPlan>("prepare_ai_import", { content }),
+  runAiImport: (content: string, sourceName?: string | null) =>
+    call<ImportPreview>("run_ai_import", { content, sourceName: sourceName ?? null }),
 
   previewImportText: (content: string, sourceName?: string) =>
     call<ImportPreview>("preview_import_text", { content, sourceName: sourceName ?? null }),

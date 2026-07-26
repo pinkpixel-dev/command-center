@@ -18,6 +18,8 @@ function makeDraft(overrides: Partial<ImportCandidate> = {}): CandidateDraft {
     tags: ["docker"],
     riskLevel: "caution",
     riskReasons: ["Removes Docker resources"],
+    aiRiskReasons: [],
+    aiNotes: null,
     variables: [],
     headingPath: ["Docker", "Cleanup"],
     sourceLine: 14,

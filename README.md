@@ -23,12 +23,17 @@ request after you enable it and start an AI action.
 - **Keyboard first.** `Ctrl + K` or `/` to search, `N` to add, arrows to move through the list, `Enter` to open an entry, and `?` for the full list. Keyboard shortcuts also sits above Settings in the sidebar so the reference is easy to find on desktop and mobile.
 - **Optional AI setup.** Enable AI in Settings, choose the `gpt-5.6-luna`
   default or another model, and store your OpenAI key in the operating system
-  credential manager. Phase 6A includes a structured connection test; Import,
-  Explain, and the assistant are not exposed yet.
+  credential manager. The key goes to the OS credential store, never to the
+  database, the logs, or the frontend.
+- **AI-assisted import.** Drop, pick, or paste a cheat sheet, README, or pile of
+  notes. Command Center reads it locally, replaces likely secrets with
+  placeholders, and shows you exactly what would be sent, down to the line each
+  redaction came from. Only then can you send it. Everything that comes back is
+  re-checked by the same local rules the manual editor uses, and nothing is
+  saved until you review it. Import only appears when AI is on with a key
+  stored.
 
-Import is paused for now. The local parser and review workflow remain in the
-codebase, but the entry point will return only after AI-assisted import can
-handle the inconsistent formatting found in real cheat sheets. See
+Explanations and the command assistant are not built yet. See
 [ROADMAP.md](DOCS/ROADMAP.md).
 
 ---

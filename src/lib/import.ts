@@ -12,7 +12,12 @@ export interface ImportCandidate {
   shell: string | null;
   tags: string[];
   riskLevel: RiskLevel;
+  /** Reasons the local rules gave. */
   riskReasons: string[];
+  /** Reasons the model gave, kept separate so the review screen can label them. */
+  aiRiskReasons: string[];
+  /** What the model said it was unsure about. */
+  aiNotes: string | null;
   variables: string[];
   headingPath: string[];
   sourceLine: number;
@@ -122,6 +127,9 @@ export function splitCandidate(draft: CandidateDraft): CandidateDraft[] {
     duplicateAction: "create",
     repeatedInDocument: false,
     droppedOutputLines: 0,
+    // The model described the whole block, not this one line.
+    aiRiskReasons: [],
+    aiNotes: null,
     selected: draft.selected,
   }));
 }
@@ -150,6 +158,9 @@ export function mergeCandidates(first: CandidateDraft, second: CandidateDraft): 
     variables: [],
     droppedOutputLines: first.droppedOutputLines + second.droppedOutputLines,
     riskReasons: [],
+    // Neither description covers the combined entry any more.
+    aiRiskReasons: [],
+    aiNotes: null,
   };
 }
 
@@ -160,6 +171,9 @@ export function withAnalysis(draft: CandidateDraft, analysis: SnippetAnalysis): 
     kind: analysis.kind,
     riskLevel: analysis.riskLevel,
     riskReasons: analysis.riskReasons,
+    // The content changed, so anything the model said about it is stale.
+    aiRiskReasons: [],
+    aiNotes: null,
     variables: analysis.variables,
     looksLikeOutput: analysis.looksLikeOutput,
     outputReason: analysis.outputReason,

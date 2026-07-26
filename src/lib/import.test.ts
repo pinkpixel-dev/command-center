@@ -23,6 +23,8 @@ function candidate(overrides: Partial<ImportCandidate> = {}): ImportCandidate {
     tags: ["docker"],
     riskLevel: "safe",
     riskReasons: [],
+    aiRiskReasons: [],
+    aiNotes: null,
     variables: [],
     headingPath: ["Docker"],
     sourceLine: 12,
