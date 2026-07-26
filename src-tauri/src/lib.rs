@@ -16,6 +16,25 @@ use tauri::{AppHandle, Manager};
 
 use crate::error::{AppError, AppResult};
 
+#[cfg(target_os = "linux")]
+const DISABLED_GIO_MODULE_PATH: &str = "/__command_center_appimage_disabled_gio_modules__";
+
+#[cfg(target_os = "linux")]
+fn appimage_gio_module_path(appimage: Option<&std::ffi::OsStr>) -> Option<&'static str> {
+    appimage.map(|_| DISABLED_GIO_MODULE_PATH)
+}
+
+#[cfg(target_os = "linux")]
+fn apply_appimage_gio_workaround() {
+    let Some(disabled_path) = appimage_gio_module_path(std::env::var_os("APPIMAGE").as_deref())
+    else {
+        return;
+    };
+
+    std::env::set_var("GIO_MODULE_DIR", disabled_path);
+    std::env::set_var("GIO_EXTRA_MODULES", disabled_path);
+}
+
 /// The SQLite file lives in the platform app-data directory, next to nothing
 /// else, so backing up the library means copying one file.
 pub fn library_path(app: &AppHandle) -> AppResult<PathBuf> {
@@ -28,6 +47,9 @@ pub fn library_path(app: &AppHandle) -> AppResult<PathBuf> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    #[cfg(target_os = "linux")]
+    apply_appimage_gio_workaround();
+
     let builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -79,4 +101,18 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running Command Center");
+}
+
+#[cfg(all(test, target_os = "linux"))]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn gio_workaround_only_has_a_path_inside_an_appimage() {
+        assert_eq!(appimage_gio_module_path(None), None);
+        assert_eq!(
+            appimage_gio_module_path(Some(std::ffi::OsStr::new("/tmp/Command_Center.AppImage"))),
+            Some(DISABLED_GIO_MODULE_PATH)
+        );
+    }
 }

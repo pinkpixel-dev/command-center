@@ -8,8 +8,8 @@
 }
 
 .sidebar__logo {
-  width: 30px;
-  height: 30px;
+  width: 35px;
+  height: 35px;
   flex: 0 0 auto;
   border-radius: var(--radius-sm);
 }
