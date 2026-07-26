@@ -1,5 +1,6 @@
 pub mod db;
 pub mod error;
+pub mod import;
 pub mod ipc;
 pub mod models;
 pub mod normalize;
@@ -28,7 +29,8 @@ pub fn run() {
     #[allow(unused_mut)]
     let mut builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_clipboard_manager::init());
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_dialog::init());
 
     #[cfg(desktop)]
     {
@@ -69,6 +71,10 @@ pub fn run() {
             ipc::library::create_collection,
             ipc::library::update_collection,
             ipc::library::delete_collection,
+            ipc::import::preview_import_text,
+            ipc::import::preview_import_file,
+            ipc::import::analyze_snippet,
+            ipc::import::import_commands,
             ipc::system::get_settings,
             ipc::system::save_settings,
             ipc::system::open_quick_add,

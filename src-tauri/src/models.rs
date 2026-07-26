@@ -95,6 +95,29 @@ pub struct Command {
     pub variables: Vec<String>,
 }
 
+impl Command {
+    /// Turns a stored entry back into an editable input. Used by the importer
+    /// when merging an incoming entry into one that already exists.
+    pub fn to_input(&self) -> CommandInput {
+        CommandInput {
+            title: self.title.clone(),
+            content: self.content.clone(),
+            description: self.description.clone(),
+            kind: self.kind,
+            language: self.language.clone(),
+            shell: self.shell.clone(),
+            operating_system: self.operating_system.clone(),
+            risk_level: Some(self.risk_level),
+            favorite: self.favorite,
+            working_directory: self.working_directory.clone(),
+            source_url: self.source_url.clone(),
+            notes: self.notes.clone(),
+            tags: self.tags.clone(),
+            collection_ids: self.collections.iter().map(|entry| entry.id).collect(),
+        }
+    }
+}
+
 /// Lightweight collection reference embedded in a command payload.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

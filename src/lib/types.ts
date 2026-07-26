@@ -108,6 +108,9 @@ export interface ListQuery {
   limit?: number | null;
 }
 
+/** Which top-level screen the main window is showing. */
+export type AppView = "library" | "import" | "settings";
+
 export type ThemePreference = "dark" | "light" | "system";
 
 export interface AppSettings {

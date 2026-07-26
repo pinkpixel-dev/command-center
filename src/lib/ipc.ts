@@ -1,6 +1,12 @@
 import { invoke } from "@tauri-apps/api/core";
 
 import type {
+  ImportItem,
+  ImportPreview,
+  ImportSummary,
+  SnippetAnalysis,
+} from "./import";
+import type {
   AppErrorPayload,
   AppSettings,
   Collection,
@@ -62,6 +68,12 @@ export const api = {
   updateCollection: (id: number, input: CollectionInput) =>
     call<Collection[]>("update_collection", { id, input }),
   deleteCollection: (id: number) => call<Collection[]>("delete_collection", { id }),
+
+  previewImportText: (content: string, sourceName?: string) =>
+    call<ImportPreview>("preview_import_text", { content, sourceName: sourceName ?? null }),
+  previewImportFile: (path: string) => call<ImportPreview>("preview_import_file", { path }),
+  analyzeSnippet: (content: string) => call<SnippetAnalysis>("analyze_snippet", { content }),
+  importCommands: (items: ImportItem[]) => call<ImportSummary>("import_commands", { items }),
 
   getSettings: () => call<AppSettings>("get_settings"),
   saveSettings: (settings: AppSettings) =>

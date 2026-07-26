@@ -1,8 +1,8 @@
-import { Clock, FolderPlus, Library, Settings, Star, Terminal, X } from "lucide-react";
+import { Clock, FolderPlus, Library, Settings, Star, Terminal, Upload, X } from "lucide-react";
 
 import { APP_NAME, APP_VERSION } from "../lib/app-info";
 import { scopesEqual } from "../lib/format";
-import type { Collection, LibraryStats, Scope, Tag } from "../lib/types";
+import type { AppView, Collection, LibraryStats, Scope, Tag } from "../lib/types";
 import { Button } from "./ui/Button";
 
 export interface SidebarProps {
@@ -10,8 +10,9 @@ export interface SidebarProps {
   tags: Tag[];
   collections: Collection[];
   scope: Scope;
-  settingsOpen: boolean;
+  view: AppView;
   onScopeChange: (scope: Scope) => void;
+  onOpenImport: () => void;
   onOpenSettings: () => void;
   onManageCollections: () => void;
   onDismiss: () => void;
@@ -29,13 +30,14 @@ export function Sidebar({
   tags,
   collections,
   scope,
-  settingsOpen,
+  view,
   onScopeChange,
+  onOpenImport,
   onOpenSettings,
   onManageCollections,
   onDismiss,
 }: SidebarProps) {
-  const isActive = (candidate: Scope) => !settingsOpen && scopesEqual(candidate, scope);
+  const isActive = (candidate: Scope) => view === "library" && scopesEqual(candidate, scope);
 
   return (
     <nav className="sidebar" aria-label="Library sections">
@@ -143,8 +145,17 @@ export function Sidebar({
       <div className="sidebar__footer">
         <button
           type="button"
-          className={`nav-item${settingsOpen ? " is-active" : ""}`}
-          aria-current={settingsOpen ? "page" : undefined}
+          className={`nav-item${view === "import" ? " is-active" : ""}`}
+          aria-current={view === "import" ? "page" : undefined}
+          onClick={onOpenImport}
+        >
+          <Upload size={15} aria-hidden="true" />
+          <span className="nav-item__label">Import</span>
+        </button>
+        <button
+          type="button"
+          className={`nav-item${view === "settings" ? " is-active" : ""}`}
+          aria-current={view === "settings" ? "page" : undefined}
           onClick={onOpenSettings}
         >
           <Settings size={15} aria-hidden="true" />

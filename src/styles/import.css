@@ -1,0 +1,333 @@
+/* Import: source picker, review list, and the summary. */
+
+.import {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 900px;
+}
+
+.import__error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* Source step -------------------------------------------------------------- */
+
+.import-source {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-6) var(--space-5);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg);
+  background: color-mix(in oklab, var(--surface) 60%, transparent);
+  transition:
+    border-color var(--duration-fast) var(--ease),
+    background-color var(--duration-fast) var(--ease);
+}
+
+.dropzone.is-hovering {
+  border-color: var(--accent);
+  background: var(--accent-quiet);
+}
+
+.dropzone__icon {
+  color: var(--text-faint);
+}
+
+.dropzone__title {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: -0.011em;
+}
+
+.dropzone__body {
+  max-width: 56ch;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.dropzone .button {
+  margin-top: var(--space-2);
+}
+
+.import-source__paste {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.import-source__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* Review step -------------------------------------------------------------- */
+
+.import-review {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.import-review__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.import-review__summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.import-review__controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.import-review__suggestion {
+  max-width: 70ch;
+}
+
+.import-review__footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.import-review__footer-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.candidate-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Candidate card ----------------------------------------------------------- */
+
+.candidate {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  transition: border-color var(--duration-fast) var(--ease);
+}
+
+.candidate.is-selected {
+  border-left-color: var(--accent);
+}
+
+.candidate.is-output {
+  opacity: 0.82;
+}
+
+.candidate.is-output.is-selected {
+  opacity: 1;
+}
+
+.candidate__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.candidate__title {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+}
+
+.candidate__content {
+  min-height: 44px;
+}
+
+.candidate__flag {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background: var(--warn-quiet);
+  font-size: var(--text-xs);
+  color: var(--text);
+}
+
+.candidate__flag--duplicate {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+  background: var(--surface-inset);
+  border: 1px solid var(--border);
+}
+
+.candidate__flag--duplicate p {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.radio-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.radio {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.radio input {
+  accent-color: var(--accent);
+  width: 15px;
+  height: 15px;
+}
+
+.candidate__row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.candidate__tags {
+  flex: 1;
+  min-width: 200px;
+}
+
+/* The tag field inside a candidate does not need its own visible label. */
+.candidate__tags .field__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.candidate__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.candidate__source {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+}
+
+.candidate__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border);
+}
+
+.candidate__remove {
+  margin-left: auto;
+}
+
+.candidate__remove:hover:not(:disabled) {
+  color: var(--danger);
+}
+
+/* Done step ---------------------------------------------------------------- */
+
+.import-done {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 640px;
+}
+
+.import-done__headline {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  color: var(--accent);
+}
+
+.import-done__headline h2 {
+  color: var(--text);
+}
+
+.import-done__failures {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-md);
+  background: var(--danger-quiet);
+  font-size: var(--text-sm);
+}
+
+.import-done__failures h3 {
+  margin-bottom: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.import-done__failures ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  color: var(--text-muted);
+}
+
+.import-done__actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+@media (max-width: 620px) {
+  .candidate__row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .import-review__bar {
+    position: static;
+  }
+}

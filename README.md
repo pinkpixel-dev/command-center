@@ -17,9 +17,10 @@ Everything lives in a single SQLite file on your machine. No account, no sync, n
 - **Local risk labels.** Offline rules mark entries Safe, Caution, or Destructive and explain why. `rm -rf`, `dd of=`, `git push --force`, and piping a download into a shell all get flagged before you run them. You can override the label per entry.
 - **Templates.** Write `ssh {{user}}@{{host}}`, fill the blanks in the expanded card, and copy the finished command.
 - **Quick Add.** A global shortcut (`Ctrl/Cmd + Shift + Space` by default) opens a small capture window from anywhere. Paste, `Ctrl + Enter`, done. It warns you when the same command is already saved.
+- **Import.** Drop a Markdown file on the window, pick one, or paste content. Command Center pulls out fenced blocks, indented blocks, prompt lines, and inline commands, uses headings as titles and nearby paragraphs as descriptions, and works out which blocks are actually pasted terminal output. Everything lands in a review screen where you edit, split, merge, or drop entries before a single one is saved. Duplicates get four choices: skip, merge, replace, or keep both.
 - **Keyboard first.** `Ctrl + K` or `/` to search, `N` to add, arrows to move through the list, `Enter` to expand, `?` for the full list.
 
-Not built yet: markdown import and the AI features. See [ROADMAP.md](ROADMAP.md).
+Not built yet: the AI features. See [ROADMAP.md](ROADMAP.md).
 
 ---
 
@@ -83,6 +84,7 @@ src/                  React frontend
   styles/             tokens first, then everything consumes tokens
 src-tauri/
   src/db/             schema, migrations, queries, FTS index
+  src/import/         document parser, classification, import execution
   src/ipc/            the commands the frontend can call
   src/risk.rs         offline risk rules
   src/normalize.rs    command normalization and hashing

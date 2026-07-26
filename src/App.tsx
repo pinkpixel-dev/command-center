@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Menu } from "lucide-react";
 
 import { CollectionManager } from "./components/CollectionManager";
+import { ImportView } from "./components/import/ImportView";
+import { ViewHeader } from "./components/ViewHeader";
 import { CommandForm } from "./components/CommandForm";
 import { CommandList } from "./components/CommandList";
 import { ConfirmDialog } from "./components/ConfirmDialog";
@@ -19,7 +20,15 @@ import { useSettings, useTheme } from "./hooks/useSettings";
 import { scopeTitle } from "./lib/format";
 import { api, toAppError } from "./lib/ipc";
 import { emptyCommandInput, toCommandInput } from "./lib/types";
-import type { CommandEntry, CommandInput, CommandKind, ListQuery, Scope, SortOrder } from "./lib/types";
+import type {
+  AppView,
+  CommandEntry,
+  CommandInput,
+  CommandKind,
+  ListQuery,
+  Scope,
+  SortOrder,
+} from "./lib/types";
 
 interface EditorState {
   open: boolean;
@@ -35,7 +44,7 @@ export default function App() {
   const [kind, setKind] = useState<CommandKind | "">("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [navOpen, setNavOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [view, setView] = useState<AppView>("library");
   const [collectionsOpen, setCollectionsOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<CommandEntry | null>(null);
@@ -115,19 +124,31 @@ export default function App() {
 
   const changeScope = (next: Scope) => {
     setScope(next);
-    setSettingsOpen(false);
+    setView("library");
     setNavOpen(false);
     setExpandedId(null);
   };
 
+  const openView = (next: AppView) => {
+    setView(next);
+    setNavOpen(false);
+  };
+
+  // Search and "add" only make sense on the library screen; the rest are global.
+  const libraryHotkeys = view === "library"
+    ? [
+        {
+          combo: "mod+k",
+          allowWhileTyping: true,
+          handler: () => searchRef.current?.focus(),
+        },
+        { combo: "/", handler: () => searchRef.current?.focus() },
+        { combo: "n", handler: openCreate },
+      ]
+    : [];
+
   useHotkeys([
-    {
-      combo: "mod+k",
-      allowWhileTyping: true,
-      handler: () => searchRef.current?.focus(),
-    },
-    { combo: "/", handler: () => searchRef.current?.focus() },
-    { combo: "n", handler: openCreate },
+    ...libraryHotkeys,
     { combo: "shift+?", allowWhileTyping: true, handler: () => setShortcutsOpen(true) },
     {
       combo: "escape",
@@ -164,12 +185,10 @@ export default function App() {
           tags={tags}
           collections={collections}
           scope={scope}
-          settingsOpen={settingsOpen}
+          view={view}
           onScopeChange={changeScope}
-          onOpenSettings={() => {
-            setSettingsOpen(true);
-            setNavOpen(false);
-          }}
+          onOpenImport={() => openView("import")}
+          onOpenSettings={() => openView("settings")}
           onManageCollections={() => setCollectionsOpen(true)}
           onDismiss={() => setNavOpen(false)}
         />
@@ -185,40 +204,49 @@ export default function App() {
       )}
 
       <main className="shell__main" id="library">
-        {settingsOpen ? (
+        {view === "settings" && (
           <>
-            <header className="topbar">
-              <div className="topbar__row">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="topbar__menu"
-                  aria-label="Open navigation"
-                  iconOnly
-                  onClick={() => setNavOpen(true)}
-                >
-                  <Menu size={18} aria-hidden="true" />
+            <ViewHeader
+              title="Settings"
+              subtitle="Preferences are stored in the same local database as your commands."
+              onOpenMenu={() => setNavOpen(true)}
+              actions={
+                <Button variant="secondary" size="sm" onClick={() => setView("library")}>
+                  Back to library
                 </Button>
-                <div className="topbar__heading">
-                  <h1>Settings</h1>
-                  <p>Preferences are stored in the same local database as your commands.</p>
-                </div>
-                <div className="topbar__actions">
-                  <Button variant="secondary" size="sm" onClick={() => setSettingsOpen(false)}>
-                    Back to library
-                  </Button>
-                </div>
-              </div>
-            </header>
+              }
+            />
             <div className="shell__content">
-              <SettingsPanel
-                settings={settings}
+              <SettingsPanel settings={settings} collections={collections} onSave={saveSettings} />
+            </div>
+          </>
+        )}
+
+        {view === "import" && (
+          <>
+            <ViewHeader
+              title="Import"
+              subtitle="Pull commands out of a cheat sheet, README, or your own notes. Parsed on this machine."
+              onOpenMenu={() => setNavOpen(true)}
+              actions={
+                <Button variant="secondary" size="sm" onClick={() => setView("library")}>
+                  Back to library
+                </Button>
+              }
+            />
+            <div className="shell__content">
+              <ImportView
                 collections={collections}
-                onSave={saveSettings}
+                tagSuggestions={tags.map((tag) => tag.name)}
+                defaultCollectionId={settings.defaultCollectionId}
+                onOpenLibrary={() => setView("library")}
+                onImported={() => void refresh()}
               />
             </div>
           </>
-        ) : (
+        )}
+
+        {view === "library" && (
           <>
             <TopBar
               title={title}

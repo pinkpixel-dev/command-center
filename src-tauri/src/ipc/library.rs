@@ -17,6 +17,11 @@ fn announce(app: &AppHandle) {
     let _ = app.emit(LIBRARY_CHANGED, ());
 }
 
+/// Lets other command modules, like the importer, refresh both windows.
+pub fn announce_change(app: &AppHandle) {
+    announce(app);
+}
+
 #[tauri::command]
 pub fn list_commands(db: State<'_, Database>, filter: ListQuery) -> AppResult<Vec<Command>> {
     db.with(|conn| commands_db::list(conn, &filter))
