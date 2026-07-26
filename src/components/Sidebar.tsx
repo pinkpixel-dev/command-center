@@ -1,4 +1,4 @@
-import { Clock, Ellipsis, Library, Plus, Settings, Star, Terminal, X } from "lucide-react";
+import { Clock, Ellipsis, Library, Settings, Star, Terminal, X } from "lucide-react";
 
 import { APP_NAME, APP_VERSION } from "../lib/app-info";
 import { scopesEqual } from "../lib/format";
@@ -33,7 +33,6 @@ export function Sidebar({
   view,
   onScopeChange,
   onOpenSettings,
-  onCreateCollection,
   onManageCollections,
   onDismiss,
 }: SidebarProps) {
