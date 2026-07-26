@@ -21,6 +21,10 @@ pub struct AppSettings {
     pub launch_at_startup: bool,
     /// Hide the main window instead of exiting when it is closed.
     pub close_to_tray: bool,
+    /// Allow network-backed AI actions. Off unless the user explicitly opts in.
+    pub ai_enabled: bool,
+    /// A curated or custom OpenAI model ID. None uses the Rust-owned default.
+    pub ai_model: Option<String>,
 }
 
 impl Default for AppSettings {
@@ -31,6 +35,8 @@ impl Default for AppSettings {
             confirm_before_delete: true,
             launch_at_startup: false,
             close_to_tray: false,
+            ai_enabled: false,
+            ai_model: None,
         }
     }
 }
@@ -46,7 +52,15 @@ impl AppSettings {
         if !matches!(self.command_view_mode.as_str(), "compact" | "cards") {
             self.command_view_mode = "cards".into();
         }
+        self.ai_model = self
+            .ai_model
+            .as_deref()
+            .and_then(crate::ai::normalize_model_id);
         self
+    }
+
+    pub fn effective_ai_model(&self) -> &str {
+        self.ai_model.as_deref().unwrap_or(crate::ai::DEFAULT_MODEL)
     }
 }
 
@@ -68,6 +82,14 @@ pub fn load(conn: &Connection) -> AppResult<AppSettings> {
 }
 
 pub fn save(conn: &Connection, settings: AppSettings) -> AppResult<AppSettings> {
+    if let Some(model) = settings.ai_model.as_deref() {
+        let has_non_empty_value = !model.trim().is_empty();
+        if has_non_empty_value && crate::ai::normalize_model_id(model).is_none() {
+            return Err(crate::error::AppError::invalid(
+                "Enter a valid OpenAI model ID without spaces.",
+            ));
+        }
+    }
     let settings = settings.sanitized();
     let encoded = serde_json::to_string(&settings)
         .map_err(|err| crate::error::AppError::runtime(format!("could not encode settings: {err}")))?;
@@ -94,6 +116,9 @@ mod tests {
         assert_eq!(settings.command_view_mode, "cards");
         assert!(!settings.launch_at_startup);
         assert!(!settings.close_to_tray);
+        assert!(!settings.ai_enabled);
+        assert_eq!(settings.ai_model, None);
+        assert_eq!(settings.effective_ai_model(), crate::ai::DEFAULT_MODEL);
     }
 
     #[test]
@@ -105,6 +130,8 @@ mod tests {
             confirm_before_delete: false,
             launch_at_startup: true,
             close_to_tray: true,
+            ai_enabled: true,
+            ai_model: Some("gpt-5-nano".into()),
         };
 
         db.with(|conn| save(conn, settings.clone())).unwrap();
@@ -115,6 +142,8 @@ mod tests {
         assert!(!loaded.confirm_before_delete);
         assert!(loaded.launch_at_startup);
         assert!(loaded.close_to_tray);
+        assert!(loaded.ai_enabled);
+        assert_eq!(loaded.ai_model.as_deref(), Some("gpt-5-nano"));
     }
 
     #[test]
@@ -156,6 +185,8 @@ mod tests {
         assert_eq!(loaded.theme, "light");
         assert_eq!(loaded.command_view_mode, "cards");
         assert!(!loaded.confirm_before_delete);
+        assert!(!loaded.ai_enabled);
+        assert_eq!(loaded.ai_model, None);
     }
 
     #[test]
@@ -186,5 +217,33 @@ mod tests {
 
         let loaded = db.with(load).unwrap();
         assert_eq!(loaded.theme, "dark");
+    }
+
+    #[test]
+    fn custom_model_is_trimmed_and_invalid_model_is_rejected() {
+        let db = Database::open_in_memory().unwrap();
+        let saved = db
+            .with(|conn| {
+                save(
+                    conn,
+                    AppSettings {
+                        ai_model: Some("  ft:gpt-5:team:commands  ".into()),
+                        ..AppSettings::default()
+                    },
+                )
+            })
+            .unwrap();
+        assert_eq!(saved.ai_model.as_deref(), Some("ft:gpt-5:team:commands"));
+
+        let invalid = db.with(|conn| {
+            save(
+                conn,
+                AppSettings {
+                    ai_model: Some("gpt-5 invalid".into()),
+                    ..AppSettings::default()
+                },
+            )
+        });
+        assert!(invalid.is_err());
     }
 }

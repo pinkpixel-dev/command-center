@@ -121,11 +121,45 @@ export interface AppSettings {
   confirmBeforeDelete: boolean;
   launchAtStartup: boolean;
   closeToTray: boolean;
+  aiEnabled: boolean;
+  aiModel: string | null;
+}
+
+export interface AiStatus {
+  keyStored: boolean;
+  credentialManagerAvailable: boolean;
+  defaultModel: string;
+  effectiveModel: string;
+  models: string[];
+}
+
+export interface AiKeyStatus {
+  keyStored: boolean;
+}
+
+export interface AiConnectionResult {
+  model: string;
 }
 
 /** Shape of a rejected `invoke` call. */
 export interface AppErrorPayload {
-  kind: "database" | "invalid" | "not_found" | "runtime";
+  kind:
+    | "database"
+    | "invalid"
+    | "not_found"
+    | "runtime"
+    | "credential"
+    | "ai_disabled"
+    | "ai_not_configured"
+    | "ai_auth"
+    | "ai_model"
+    | "ai_rate_limit"
+    | "ai_network"
+    | "ai_response"
+    | "ai_refusal"
+    | "ai_incomplete"
+    | "ai_malformed"
+    | "ai_response_too_large";
   message: string;
 }
 

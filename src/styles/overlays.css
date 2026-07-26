@@ -415,6 +415,10 @@
   color: var(--danger);
 }
 
+.settings__status.is-info {
+  color: var(--text-muted);
+}
+
 @media (pointer: coarse) {
   .collection-field__remove {
     min-width: var(--tap-target);

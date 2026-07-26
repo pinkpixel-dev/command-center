@@ -11,6 +11,7 @@ import type {
 } from "../lib/types";
 import { Button } from "./ui/Button";
 import { CheckboxField, SelectField } from "./ui/Field";
+import { AiSettingsSection } from "./AiSettingsSection";
 
 export interface SettingsPanelProps {
   settings: AppSettings;
@@ -54,6 +55,10 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
   };
 
   const dirty = JSON.stringify(draft) !== JSON.stringify(settings);
+  const invalidAiModel =
+    draft.aiEnabled &&
+    draft.aiModel !== null &&
+    (!draft.aiModel.trim() || /\s/.test(draft.aiModel));
 
   const runFileAction = async (action: "export" | "backup") => {
     setFileAction(action);
@@ -112,6 +117,8 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
         />
       </section>
 
+      <AiSettingsSection draft={draft} saved={settings} onPatch={patch} />
+
       <section className="settings__section">
         <h2>View</h2>
 
@@ -164,7 +171,12 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
       </section>
 
       <div className="settings__actions">
-        <Button variant="primary" onClick={() => void save()} loading={saving} disabled={!dirty}>
+        <Button
+          variant="primary"
+          onClick={() => void save()}
+          loading={saving}
+          disabled={!dirty || invalidAiModel}
+        >
           Save settings
         </Button>
         {dirty && !saving && <span className="field__hint">Unsaved changes</span>}

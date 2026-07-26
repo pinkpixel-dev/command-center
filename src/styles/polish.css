@@ -185,6 +185,61 @@
   gap: var(--space-2);
 }
 
+.ai-settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-top: var(--space-1);
+}
+
+.ai-settings__credential {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-block: var(--space-3);
+  border-block: 1px solid var(--border);
+}
+
+.ai-settings__key-state {
+  margin-top: var(--space-1);
+  color: var(--text);
+  font-size: var(--text-sm);
+}
+
+.ai-settings__key-form,
+.ai-settings__remove-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+}
+
+.ai-settings__remove-confirm p {
+  color: var(--text);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.ai-settings__test {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+}
+
+@media (max-width: 480px) {
+  .ai-settings__credential,
+  .ai-settings__test {
+    display: flex;
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
 @media (pointer: coarse) {
   .palette__action {
     min-height: var(--tap-target);

@@ -10,6 +10,8 @@ export const DEFAULT_SETTINGS: AppSettings = {
   confirmBeforeDelete: true,
   launchAtStartup: false,
   closeToTray: false,
+  aiEnabled: false,
+  aiModel: null,
 };
 
 export interface SettingsState {

@@ -1,3 +1,4 @@
+pub mod ai;
 pub mod db;
 #[cfg(desktop)]
 pub mod desktop;
@@ -68,8 +69,10 @@ pub fn run() {
         .setup(|app| {
             let handle = app.handle().clone();
             let database = recovery::open_library(&handle, library_path(&handle)?)?;
+            let ai_service = ai::AiService::new()?;
 
             app.manage(database);
+            app.manage(ai_service);
             #[cfg(desktop)]
             desktop::setup_tray(app)?;
             Ok(())
@@ -98,6 +101,10 @@ pub fn run() {
             ipc::system::library_location,
             ipc::system::export_library_markdown,
             ipc::system::backup_library,
+            ipc::ai::get_ai_status,
+            ipc::ai::save_ai_key,
+            ipc::ai::remove_ai_key,
+            ipc::ai::test_ai_connection,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Command Center");

@@ -4,7 +4,9 @@ A local-first desktop app for saving, organizing, and instantly finding terminal
 
 It exists to answer one question: *"I know I've used this command before... where the hell did I put it?"*
 
-Everything lives in a single SQLite file on your machine. No account, no sync, no network calls.
+Your command library lives in a single SQLite file on your machine. There is no
+account or sync. Optional OpenAI support is off by default and only makes a
+request after you enable it and start an AI action.
 
 ---
 
@@ -19,11 +21,15 @@ Everything lives in a single SQLite file on your machine. No account, no sync, n
 - **Card and compact views.** Cards are the default and form a responsive grid with up to four columns on large displays. Compact remains available when you want a denser list. Long commands scroll inside fixed previews, and a click opens the complete entry without stretching the library.
 - **Three theme palettes.** Use the standard dark theme, a near-black high-contrast theme, or light mode. The system option follows your desktop preference.
 - **Keyboard first.** `Ctrl + K` or `/` to search, `N` to add, arrows to move through the list, `Enter` to open an entry, and `?` for the full list. Keyboard shortcuts also sits above Settings in the sidebar so the reference is easy to find on desktop and mobile.
+- **Optional AI setup.** Enable AI in Settings, choose the `gpt-5.6-luna`
+  default or another model, and store your OpenAI key in the operating system
+  credential manager. Phase 6A includes a structured connection test; Import,
+  Explain, and the assistant are not exposed yet.
 
 Import is paused for now. The local parser and review workflow remain in the
 codebase, but the entry point will return only after AI-assisted import can
 handle the inconsistent formatting found in real cheat sheets. See
-[ROADMAP.md](ROADMAP.md).
+[ROADMAP.md](DOCS/ROADMAP.md).
 
 ---
 
@@ -73,7 +79,10 @@ One SQLite file in the platform app-data directory:
 - macOS: `~/Library/Application Support/dev.pinkpixel.commandcenter/library.db`
 - Windows: `%APPDATA%\dev.pinkpixel.commandcenter\library.db`
 
-Settings live in the same file. Backing up the library means copying that one file. The exact path is shown in Settings → About.
+Non-secret settings live in the same file. The OpenAI API key does not; Rust
+stores it through Keychain, Credential Manager, or Secret Service. Backing up
+the library means copying the SQLite file. The exact path is shown in Settings
+→ About.
 
 ---
 
@@ -86,6 +95,7 @@ src/                  React frontend
   lib/                types, IPC wrappers, pure helpers
   styles/             tokens first, then everything consumes tokens
 src-tauri/
+  src/ai/             OpenAI client, OS credentials, model config, redaction
   src/db/             schema, migrations, queries, FTS index
   src/import/         document parser, classification, import execution
   src/ipc/            the commands the frontend can call
@@ -94,7 +104,7 @@ src-tauri/
   tests/              end-to-end tests against a real database
 ```
 
-Full technical reference: [OVERVIEW.md](OVERVIEW.md).
+Full technical reference: [OVERVIEW.md](DOCS/OVERVIEW.md).
 
 ---
 

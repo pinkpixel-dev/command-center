@@ -8,6 +8,9 @@ import type {
 } from "./import";
 import type {
   AppErrorPayload,
+  AiConnectionResult,
+  AiKeyStatus,
+  AiStatus,
   AppSettings,
   Collection,
   CollectionInput,
@@ -78,6 +81,10 @@ export const api = {
   getSettings: () => call<AppSettings>("get_settings"),
   saveSettings: (settings: AppSettings) =>
     call<AppSettings>("save_settings", { settingsInput: settings }),
+  getAiStatus: () => call<AiStatus>("get_ai_status"),
+  saveAiKey: (apiKey: string) => call<AiKeyStatus>("save_ai_key", { apiKey }),
+  removeAiKey: () => call<AiKeyStatus>("remove_ai_key"),
+  testAiConnection: () => call<AiConnectionResult>("test_ai_connection"),
   libraryLocation: () => call<string>("library_location"),
   exportLibraryMarkdown: (destination: string) =>
     call<string>("export_library_markdown", { destination }),

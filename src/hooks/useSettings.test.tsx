@@ -59,5 +59,7 @@ describe("useTheme", () => {
 describe("DEFAULT_SETTINGS", () => {
   it("uses cards when no saved library view is available", () => {
     expect(DEFAULT_SETTINGS.commandViewMode).toBe("cards");
+    expect(DEFAULT_SETTINGS.aiEnabled).toBe(false);
+    expect(DEFAULT_SETTINGS.aiModel).toBeNull();
   });
 });

@@ -14,6 +14,13 @@ vi.mock("../lib/ipc", async (importOriginal) => {
     api: {
       ...original.api,
       libraryLocation: vi.fn().mockResolvedValue("/tmp/command-center/library.db"),
+      getAiStatus: vi.fn().mockResolvedValue({
+        keyStored: false,
+        credentialManagerAvailable: true,
+        defaultModel: "gpt-5.6-luna",
+        effectiveModel: "gpt-5.6-luna",
+        models: ["gpt-5.6-luna", "gpt-5-nano"],
+      }),
     },
   };
 });
@@ -29,11 +36,20 @@ const settings: AppSettings = {
   confirmBeforeDelete: true,
   launchAtStartup: false,
   closeToTray: false,
+  aiEnabled: false,
+  aiModel: null,
 };
 
 describe("SettingsPanel", () => {
   beforeEach(() => {
     vi.mocked(api.libraryLocation).mockResolvedValue("/tmp/command-center/library.db");
+    vi.mocked(api.getAiStatus).mockResolvedValue({
+      keyStored: false,
+      credentialManagerAvailable: true,
+      defaultModel: "gpt-5.6-luna",
+      effectiveModel: "gpt-5.6-luna",
+      models: ["gpt-5.6-luna", "gpt-5-nano"],
+    });
     vi.mocked(exportLibraryMarkdown).mockReset();
     vi.mocked(backupLibraryDatabase).mockReset();
   });
@@ -90,5 +106,16 @@ describe("SettingsPanel", () => {
     expect(screen.queryByLabelText("Global shortcut")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Default collection for new commands")).not.toBeInTheDocument();
     expect(await screen.findByText("/tmp/command-center/library.db")).toBeInTheDocument();
+  });
+
+  it("does not save an empty custom model ID", async () => {
+    const user = userEvent.setup();
+    render(<SettingsPanel settings={settings} onSave={vi.fn().mockResolvedValue(settings)} />);
+
+    await user.click(screen.getByLabelText("Enable AI features"));
+    await user.selectOptions(await screen.findByLabelText("OpenAI model"), "__custom__");
+
+    expect(screen.getByText("Enter a model ID or choose a model from the list.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save settings" })).toBeDisabled();
   });
 });
