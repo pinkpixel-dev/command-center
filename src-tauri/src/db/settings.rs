@@ -7,17 +7,14 @@ use serde::{Deserialize, Serialize};
 use crate::error::AppResult;
 
 const SETTINGS_KEY: &str = "app_settings";
-pub const DEFAULT_QUICK_ADD_SHORTCUT: &str = "CommandOrControl+Shift+Space";
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(default, rename_all = "camelCase")]
 pub struct AppSettings {
-    /// "dark", "light" or "system".
+    /// "dark", "high-contrast", "light" or "system".
     pub theme: String,
-    /// Accelerator string understood by the global shortcut plugin.
-    pub quick_add_shortcut: String,
-    /// Whether the Quick Add window closes itself after a successful save.
-    pub close_quick_add_after_save: bool,
+    /// "compact" or "cards".
+    pub command_view_mode: String,
     /// Ask before deleting an entry.
     pub confirm_before_delete: bool,
     /// Collection pre-selected for new entries.
@@ -28,8 +25,7 @@ impl Default for AppSettings {
     fn default() -> Self {
         Self {
             theme: "dark".into(),
-            quick_add_shortcut: DEFAULT_QUICK_ADD_SHORTCUT.into(),
-            close_quick_add_after_save: true,
+            command_view_mode: "compact".into(),
             confirm_before_delete: true,
             default_collection_id: None,
         }
@@ -37,14 +33,15 @@ impl Default for AppSettings {
 }
 
 impl AppSettings {
-    /// Falls back to the default shortcut when someone clears the field.
     fn sanitized(mut self) -> Self {
-        self.quick_add_shortcut = self.quick_add_shortcut.trim().to_string();
-        if self.quick_add_shortcut.is_empty() {
-            self.quick_add_shortcut = DEFAULT_QUICK_ADD_SHORTCUT.into();
-        }
-        if !matches!(self.theme.as_str(), "dark" | "light" | "system") {
+        if !matches!(
+            self.theme.as_str(),
+            "dark" | "high-contrast" | "light" | "system"
+        ) {
             self.theme = "dark".into();
+        }
+        if !matches!(self.command_view_mode.as_str(), "compact" | "cards") {
+            self.command_view_mode = "compact".into();
         }
         self
     }
@@ -91,15 +88,15 @@ mod tests {
         let db = Database::open_in_memory().unwrap();
         let settings = db.with(load).unwrap();
         assert_eq!(settings.theme, "dark");
-        assert_eq!(settings.quick_add_shortcut, DEFAULT_QUICK_ADD_SHORTCUT);
+        assert_eq!(settings.command_view_mode, "compact");
     }
 
     #[test]
     fn settings_round_trip() {
         let db = Database::open_in_memory().unwrap();
         let settings = AppSettings {
-            theme: "light".into(),
-            quick_add_shortcut: "CommandOrControl+Alt+K".into(),
+            theme: "high-contrast".into(),
+            command_view_mode: "cards".into(),
             confirm_before_delete: false,
             ..AppSettings::default()
         };
@@ -107,8 +104,8 @@ mod tests {
         db.with(|conn| save(conn, settings.clone())).unwrap();
         let loaded = db.with(load).unwrap();
 
-        assert_eq!(loaded.theme, "light");
-        assert_eq!(loaded.quick_add_shortcut, "CommandOrControl+Alt+K");
+        assert_eq!(loaded.theme, "high-contrast");
+        assert_eq!(loaded.command_view_mode, "cards");
         assert!(!loaded.confirm_before_delete);
     }
 
@@ -117,13 +114,41 @@ mod tests {
         let db = Database::open_in_memory().unwrap();
         let settings = AppSettings {
             theme: "neon".into(),
-            quick_add_shortcut: "   ".into(),
+            command_view_mode: "masonry".into(),
             ..AppSettings::default()
         };
 
         let saved = db.with(|conn| save(conn, settings.clone())).unwrap();
         assert_eq!(saved.theme, "dark");
-        assert_eq!(saved.quick_add_shortcut, DEFAULT_QUICK_ADD_SHORTCUT);
+        assert_eq!(saved.command_view_mode, "compact");
+    }
+
+    #[test]
+    fn legacy_settings_keep_known_preferences_and_fill_new_defaults() {
+        let db = Database::open_in_memory().unwrap();
+        db.with(|conn| {
+            conn.execute(
+                "INSERT INTO settings (key, value) VALUES (?1, ?2)",
+                params![
+                    SETTINGS_KEY,
+                    r#"{
+                        "theme": "light",
+                        "quickAddShortcut": "CommandOrControl+Alt+K",
+                        "closeQuickAddAfterSave": false,
+                        "confirmBeforeDelete": false,
+                        "defaultCollectionId": 7
+                    }"#
+                ],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+        let loaded = db.with(load).unwrap();
+        assert_eq!(loaded.theme, "light");
+        assert_eq!(loaded.command_view_mode, "compact");
+        assert!(!loaded.confirm_before_delete);
+        assert_eq!(loaded.default_collection_id, Some(7));
     }
 
     #[test]

@@ -11,14 +11,13 @@ import { ShortcutsHelp } from "./components/ShortcutsHelp";
 import { Sidebar } from "./components/Sidebar";
 import { TopBar } from "./components/TopBar";
 import { Button } from "./components/ui/Button";
-import { useToast } from "./components/ui/Toast";
 import { useCommandActions } from "./hooks/useCommandActions";
 import { useDebounced } from "./hooks/useDebounced";
 import { useHotkeys } from "./hooks/useHotkeys";
 import { useLibrary } from "./hooks/useLibrary";
 import { useSettings, useTheme } from "./hooks/useSettings";
 import { scopeTitle } from "./lib/format";
-import { api, toAppError } from "./lib/ipc";
+import { toAppError } from "./lib/ipc";
 import { emptyCommandInput, toCommandInput } from "./lib/types";
 import type {
   AppView,
@@ -58,7 +57,6 @@ export default function App() {
   });
 
   const searchRef = useRef<HTMLInputElement>(null);
-  const { notify } = useToast();
   const { settings, save: saveSettings } = useSettings();
   useTheme(settings.theme);
 
@@ -187,7 +185,6 @@ export default function App() {
           scope={scope}
           view={view}
           onScopeChange={changeScope}
-          onOpenImport={() => openView("import")}
           onOpenSettings={() => openView("settings")}
           onManageCollections={() => setCollectionsOpen(true)}
           onDismiss={() => setNavOpen(false)}
@@ -259,11 +256,6 @@ export default function App() {
               onSortChange={setSort}
               onKindChange={setKind}
               onAdd={openCreate}
-              onQuickAdd={() => {
-                void api.openQuickAdd().catch((caught) => {
-                  notify(toAppError(caught).message, "error");
-                });
-              }}
               onOpenMenu={() => setNavOpen(true)}
             />
 
@@ -273,6 +265,7 @@ export default function App() {
                 loading={loading}
                 error={error}
                 searching={debouncedSearch.trim().length > 0}
+                viewMode={settings.commandViewMode}
                 expandedId={expandedId}
                 onExpand={setExpandedId}
                 onCopy={(entry, text) => void actions.copy(entry, text)}
@@ -315,7 +308,6 @@ export default function App() {
 
       <ShortcutsHelp
         open={shortcutsOpen}
-        quickAddShortcut={settings.quickAddShortcut}
         onClose={() => setShortcutsOpen(false)}
       />
 

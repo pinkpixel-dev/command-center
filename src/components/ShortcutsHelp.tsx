@@ -1,4 +1,3 @@
-import { prettyShortcut } from "../lib/format";
 import { Button } from "./ui/Button";
 import { Kbd } from "./ui/Kbd";
 import { Modal } from "./ui/Modal";
@@ -15,11 +14,9 @@ const SHORTCUTS: { keys: string; action: string }[] = [
 
 export function ShortcutsHelp({
   open,
-  quickAddShortcut,
   onClose,
 }: {
   open: boolean;
-  quickAddShortcut: string;
   onClose: () => void;
 }) {
   return (
@@ -40,10 +37,6 @@ export function ShortcutsHelp({
             <Kbd keys={shortcut.keys} />
           </li>
         ))}
-        <li>
-          <span>Open Quick Add from anywhere</span>
-          <Kbd keys={prettyShortcut(quickAddShortcut)} />
-        </li>
       </ul>
     </Modal>
   );

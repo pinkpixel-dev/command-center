@@ -111,12 +111,13 @@ export interface ListQuery {
 /** Which top-level screen the main window is showing. */
 export type AppView = "library" | "import" | "settings";
 
-export type ThemePreference = "dark" | "light" | "system";
+export type ThemePreference = "dark" | "high-contrast" | "light" | "system";
+
+export type CommandViewMode = "compact" | "cards";
 
 export interface AppSettings {
   theme: ThemePreference;
-  quickAddShortcut: string;
-  closeQuickAddAfterSave: boolean;
+  commandViewMode: CommandViewMode;
   confirmBeforeDelete: boolean;
   defaultCollectionId: number | null;
 }
@@ -127,7 +128,7 @@ export interface AppErrorPayload {
   message: string;
 }
 
-/** A blank entry, used by both the full form and Quick Add. */
+/** A blank entry used by the command editor. */
 export function emptyCommandInput(overrides: Partial<CommandInput> = {}): CommandInput {
   return {
     title: "",

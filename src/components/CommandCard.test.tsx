@@ -16,7 +16,13 @@ function setup(props: Partial<Parameters<typeof CommandCard>[0]> = {}) {
   };
 
   const view = render(
-    <CommandCard entry={makeEntry()} expanded={false} {...handlers} {...props} />,
+    <CommandCard
+      entry={makeEntry()}
+      viewMode="compact"
+      expanded={false}
+      {...handlers}
+      {...props}
+    />,
   );
 
   return { ...handlers, ...view };
@@ -60,6 +66,7 @@ describe("CommandCard", () => {
     rerender(
       <CommandCard
         entry={makeEntry()}
+        viewMode="compact"
         expanded
         onToggle={vi.fn()}
         onCopy={vi.fn()}
@@ -116,5 +123,26 @@ describe("CommandCard", () => {
     expect(
       screen.getByRole("button", { name: "Delete Update Arch packages" }),
     ).toBeInTheDocument();
+  });
+
+  it("marks the selected presentation mode for responsive styling", () => {
+    const { container, rerender } = setup();
+    expect(container.querySelector("article")).toHaveClass("card--compact");
+
+    rerender(
+      <CommandCard
+        entry={makeEntry()}
+        viewMode="cards"
+        expanded={false}
+        onToggle={vi.fn()}
+        onCopy={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onToggleFavorite={vi.fn()}
+        onOpenSource={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector("article")).toHaveClass("card--cards");
   });
 });

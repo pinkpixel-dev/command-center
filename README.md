@@ -16,11 +16,14 @@ Everything lives in a single SQLite file on your machine. No account, no sync, n
 - **Favorites and recents.** Pin the ones you reach for. Copying an entry bumps its counter and drops it into Recent.
 - **Local risk labels.** Offline rules mark entries Safe, Caution, or Destructive and explain why. `rm -rf`, `dd of=`, `git push --force`, and piping a download into a shell all get flagged before you run them. You can override the label per entry.
 - **Templates.** Write `ssh {{user}}@{{host}}`, fill the blanks in the expanded card, and copy the finished command.
-- **Quick Add.** A global shortcut (`Ctrl/Cmd + Shift + Space` by default) opens a small capture window from anywhere. Paste, `Ctrl + Enter`, done. It warns you when the same command is already saved.
-- **Import.** Drop a Markdown file on the window, pick one, or paste content. Command Center pulls out fenced blocks, indented blocks, prompt lines, and inline commands, uses headings as titles and nearby paragraphs as descriptions, and works out which blocks are actually pasted terminal output. Everything lands in a review screen where you edit, split, merge, or drop entries before a single one is saved. Duplicates get four choices: skip, merge, replace, or keep both.
+- **Compact and card views.** Compact keeps the library dense and scannable. Cards expand into a responsive grid with up to four columns on large displays. Pick either in Settings.
+- **Three theme palettes.** Use the standard dark theme, a near-black high-contrast theme, or light mode. The system option follows your desktop preference.
 - **Keyboard first.** `Ctrl + K` or `/` to search, `N` to add, arrows to move through the list, `Enter` to expand, `?` for the full list.
 
-Not built yet: the AI features. See [ROADMAP.md](ROADMAP.md).
+Import is paused for now. The local parser and review workflow remain in the
+codebase, but the entry point will return only after AI-assisted import can
+handle the inconsistent formatting found in real cheat sheets. See
+[ROADMAP.md](ROADMAP.md).
 
 ---
 

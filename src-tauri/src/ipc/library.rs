@@ -9,7 +9,7 @@ use crate::models::{
     Collection, CollectionInput, Command, CommandInput, LibraryStats, Tag,
 };
 
-/// Event both windows listen to so a save in Quick Add refreshes the library.
+/// Event the frontend listens to so library changes refresh the current view.
 pub const LIBRARY_CHANGED: &str = "library-changed";
 
 fn announce(app: &AppHandle) {
@@ -17,7 +17,7 @@ fn announce(app: &AppHandle) {
     let _ = app.emit(LIBRARY_CHANGED, ());
 }
 
-/// Lets other command modules, like the importer, refresh both windows.
+/// Lets other command modules, like the importer, refresh the library view.
 pub fn announce_change(app: &AppHandle) {
     announce(app);
 }
@@ -77,8 +77,7 @@ pub fn record_copy(app: AppHandle, db: State<'_, Database>, id: i64) -> AppResul
     Ok(updated)
 }
 
-/// Looks for an entry with the same normalized content, so Quick Add can warn
-/// instead of creating a near-identical second copy.
+/// Looks for an entry with the same normalized content.
 #[tauri::command]
 pub fn find_duplicate(db: State<'_, Database>, content: String) -> AppResult<Option<Command>> {
     db.with(|conn| commands_db::find_by_content(conn, &content))

@@ -66,7 +66,7 @@ export function useLibrary(filter: ListQuery): LibraryData {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterKey, load]);
 
-  // Quick Add lives in its own window, so refreshes have to be event driven.
+  // Follow writes announced by the backend, including dormant import work.
   useEffect(() => {
     const unlisten = listen(LIBRARY_CHANGED, () => {
       void load();

@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 
-import { APP_NAME, APP_VERSION, MAKER, MAKER_URL } from "../lib/app-info";
-import { prettyShortcut } from "../lib/format";
+import { APP_NAME, APP_VERSION, MAKER, MAKER_URL, GITHUB_URL, SUPPORT_EMAIL } from "../lib/app-info";
 import { api, toAppError } from "../lib/ipc";
-import type { AppSettings, Collection, ThemePreference } from "../lib/types";
+import type {
+  AppSettings,
+  Collection,
+  CommandViewMode,
+  ThemePreference,
+} from "../lib/types";
 import { Button } from "./ui/Button";
-import { CheckboxField, SelectField, TextField } from "./ui/Field";
+import { CheckboxField, SelectField } from "./ui/Field";
 
 export interface SettingsPanelProps {
   settings: AppSettings;
@@ -59,6 +63,7 @@ export function SettingsPanel({ settings, collections, onSave }: SettingsPanelPr
           onChange={(event) => patch({ theme: event.target.value as ThemePreference })}
           options={[
             { value: "dark", label: "Dark" },
+            { value: "high-contrast", label: "High contrast dark" },
             { value: "light", label: "Light" },
             { value: "system", label: "Match the system" },
           ]}
@@ -87,20 +92,19 @@ export function SettingsPanel({ settings, collections, onSave }: SettingsPanelPr
       </section>
 
       <section className="settings__section">
-        <h2>Quick Add</h2>
+        <h2>View</h2>
 
-        <TextField
-          label="Global shortcut"
-          value={draft.quickAddShortcut}
-          onChange={(event) => patch({ quickAddShortcut: event.target.value })}
-          hint={`Currently ${prettyShortcut(draft.quickAddShortcut)}. Use names like CommandOrControl+Shift+Space.`}
-          spellCheck={false}
-        />
-
-        <CheckboxField
-          label="Close the Quick Add window after saving"
-          checked={draft.closeQuickAddAfterSave}
-          onChange={(event) => patch({ closeQuickAddAfterSave: event.target.checked })}
+        <SelectField
+          label="Library view"
+          value={draft.commandViewMode}
+          onChange={(event) =>
+            patch({ commandViewMode: event.target.value as CommandViewMode })
+          }
+          options={[
+            { value: "compact", label: "Compact list" },
+            { value: "cards", label: "Cards" },
+          ]}
+          hint="Compact keeps each command easy to scan. Cards use more width when it is available."
         />
       </section>
 
@@ -128,12 +132,7 @@ export function SettingsPanel({ settings, collections, onSave }: SettingsPanelPr
               {APP_NAME} v{APP_VERSION}
             </dd>
           </div>
-          {location && (
-            <div>
-              <dt>Library file</dt>
-              <dd className="mono">{location}</dd>
-            </div>
-          )}
+
           <div>
             <dt>Made by</dt>
             <dd>
@@ -146,10 +145,37 @@ export function SettingsPanel({ settings, collections, onSave }: SettingsPanelPr
               </button>
             </dd>
           </div>
+          <div>
+            <dt>Support</dt>
+            <dd>
+              <button
+                type="button"
+                className="link-button"
+                onClick={() => void openUrl(SUPPORT_EMAIL)}
+              >
+                {SUPPORT_EMAIL}
+              </button>
+            </dd>
+          </div>
+          <div>
+            <dt>GitHub</dt>
+            <dd>
+              <button
+                type="button"
+                className="link-button"
+                onClick={() => void openUrl(GITHUB_URL)}
+              >
+                {GITHUB_URL}
+              </button>
+            </dd>
+          </div>
+                {location && (
+            <div>
+              <dt>Library file</dt>
+              <dd className="mono">{location}</dd>
+            </div>
+          )}
         </dl>
-        <p className="field__hint">
-          Everything stays on this machine. No account, no sync, no network calls.
-        </p>
       </section>
     </div>
   );

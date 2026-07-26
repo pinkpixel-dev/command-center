@@ -6,8 +6,7 @@ import type { AppSettings, ThemePreference } from "../lib/types";
 
 export const DEFAULT_SETTINGS: AppSettings = {
   theme: "dark",
-  quickAddShortcut: "CommandOrControl+Shift+Space",
-  closeQuickAddAfterSave: true,
+  commandViewMode: "compact",
   confirmBeforeDelete: true,
   defaultCollectionId: null,
 };
@@ -42,7 +41,7 @@ export function useSettings(): SettingsState {
     };
   }, []);
 
-  // Both windows follow the same theme and shortcut.
+  // Keep the current window in sync with settings saved elsewhere.
   useEffect(() => {
     const unlisten = listen<AppSettings>(SETTINGS_CHANGED, (event) => {
       setSettings(event.payload);

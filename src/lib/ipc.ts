@@ -78,7 +78,5 @@ export const api = {
   getSettings: () => call<AppSettings>("get_settings"),
   saveSettings: (settings: AppSettings) =>
     call<AppSettings>("save_settings", { settingsInput: settings }),
-  openQuickAdd: () => call<void>("open_quick_add"),
-  closeQuickAdd: () => call<void>("close_quick_add"),
   libraryLocation: () => call<string>("library_location"),
 };

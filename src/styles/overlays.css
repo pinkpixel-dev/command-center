@@ -307,82 +307,8 @@
   color: var(--danger);
 }
 
-/* Quick Add window --------------------------------------------------------- */
-
-.quick-add-body {
-  background: var(--surface);
-}
-
-.quick-add {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  height: 100%;
-  padding: var(--space-4);
-}
-
-.quick-add__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
-.quick-add__head h1 {
-  font-size: var(--text-lg);
-}
-
-.quick-add__hint {
-  font-size: var(--text-xs);
-  color: var(--text-faint);
-}
-
-.quick-add__content {
-  flex: 1;
-  min-height: 92px;
-}
-
-.quick-add__row {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-2);
-}
-
-.quick-add__row > *:nth-child(3) {
-  grid-column: 1 / -1;
-}
-
-.quick-add__notice {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
-  background: var(--warn-quiet);
-  color: var(--text);
-  font-size: var(--text-xs);
-}
-
-.quick-add__notice.is-error {
-  background: var(--danger-quiet);
-}
-
-.quick-add__notice.is-ok {
-  background: var(--accent-quiet);
-}
-
-.quick-add__actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: var(--space-2);
-}
-
 @media (max-width: 560px) {
   .form--inline {
-    grid-template-columns: 1fr;
-  }
-
-  .quick-add__row {
     grid-template-columns: 1fr;
   }
 

@@ -2,13 +2,14 @@ import { useRef } from "react";
 import type { KeyboardEvent } from "react";
 import { Inbox, SearchX } from "lucide-react";
 
-import type { CommandEntry } from "../lib/types";
+import type { CommandEntry, CommandViewMode } from "../lib/types";
 import { CommandCard } from "./CommandCard";
 import { Button } from "./ui/Button";
 import { EmptyState } from "./ui/EmptyState";
 
 export interface CommandListProps {
   entries: CommandEntry[];
+  viewMode: CommandViewMode;
   loading: boolean;
   error: string | null;
   searching: boolean;
@@ -25,6 +26,7 @@ export interface CommandListProps {
 
 export function CommandList({
   entries,
+  viewMode,
   loading,
   error,
   searching,
@@ -116,11 +118,19 @@ export function CommandList({
   }
 
   return (
-    <ul className="command-list" ref={listRef} onKeyDown={onKeyDown}>
+    <ul
+      className={`command-list command-list--${viewMode}`}
+      ref={listRef}
+      onKeyDown={onKeyDown}
+    >
       {entries.map((entry) => (
-        <li key={entry.id}>
+        <li
+          key={entry.id}
+          className={`command-list__item${expandedId === entry.id ? " is-expanded" : ""}`}
+        >
           <CommandCard
             entry={entry}
+            viewMode={viewMode}
             expanded={expandedId === entry.id}
             onToggle={() => onExpand(expandedId === entry.id ? null : entry.id)}
             onCopy={(text) => onCopy(entry, text)}

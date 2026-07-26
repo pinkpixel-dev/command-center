@@ -1,9 +1,30 @@
 /* Command cards ------------------------------------------------------------ */
 
 .command-list {
+  gap: var(--space-3);
+}
+
+.command-list--compact {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+}
+
+.command-list--cards {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: stretch;
+}
+
+.command-list__item {
+  min-width: 0;
+}
+
+.command-list--cards > .command-list__item {
+  display: flex;
+}
+
+.command-list--cards > .command-list__item.is-expanded {
+  grid-column: 1 / -1;
 }
 
 .card {
@@ -29,6 +50,66 @@
 
 .card.is-expanded {
   background: var(--surface-raised);
+}
+
+.card--cards {
+  width: 100%;
+}
+
+.card--cards .card__actions {
+  margin-top: auto;
+}
+
+/* Compact mode uses two desktop scan rows: identity and metadata first,
+   followed by the command and its actions. Expanded details keep their full
+   width beneath both rows. */
+.card--compact {
+  display: grid;
+  grid-template-columns: minmax(13rem, 0.8fr) minmax(0, 1.2fr) auto;
+  grid-template-areas:
+    "head meta meta"
+    "code code actions"
+    "body body body";
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3);
+}
+
+.card--compact .card__head {
+  grid-area: head;
+  min-width: 0;
+}
+
+.card--compact .code {
+  grid-area: code;
+  min-width: 0;
+  padding: var(--space-2);
+  line-height: 1.4;
+}
+
+.card--compact .code--clamped code {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card--compact .card__meta {
+  grid-area: meta;
+  min-width: 0;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.card--compact .card__meta > * {
+  flex-shrink: 0;
+}
+
+.card--compact .card__body {
+  grid-area: body;
+}
+
+.card--compact .card__actions {
+  grid-area: actions;
 }
 
 .card__head {
@@ -303,5 +384,52 @@
 @keyframes pulse {
   50% {
     opacity: 0.35;
+  }
+}
+
+@media (min-width: 700px) {
+  .command-list--cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .command-list--cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1600px) {
+  .command-list--cards {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 699px) {
+  .card--compact {
+    display: flex;
+    gap: var(--space-3);
+    padding: var(--space-4);
+  }
+
+  .card--compact .code {
+    padding: var(--space-3);
+    line-height: 1.6;
+  }
+
+  .card--compact .code--clamped code {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    white-space: pre-wrap;
+  }
+
+  .card--compact .card__meta {
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+
+  .card--compact .card__actions {
+    flex-wrap: wrap;
   }
 }

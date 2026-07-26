@@ -1,5 +1,5 @@
 import type { RefObject } from "react";
-import { Menu, Plus, Search, X, Zap } from "lucide-react";
+import { Menu, Plus, Search, X } from "lucide-react";
 
 import { kindLabel } from "../lib/format";
 import { COMMAND_KINDS } from "../lib/types";
@@ -18,7 +18,6 @@ export interface TopBarProps {
   onSortChange: (value: SortOrder) => void;
   onKindChange: (value: CommandKind | "") => void;
   onAdd: () => void;
-  onQuickAdd: () => void;
   onOpenMenu: () => void;
 }
 
@@ -41,7 +40,6 @@ export function TopBar({
   onSortChange,
   onKindChange,
   onAdd,
-  onQuickAdd,
   onOpenMenu,
 }: TopBarProps) {
   return (
@@ -64,10 +62,6 @@ export function TopBar({
         </div>
 
         <div className="topbar__actions">
-          <Button variant="ghost" size="sm" onClick={onQuickAdd} title="Open the Quick Add window">
-            <Zap size={15} aria-hidden="true" />
-            <span className="topbar__action-label">Quick Add</span>
-          </Button>
           <Button variant="primary" size="sm" onClick={onAdd}>
             <Plus size={15} aria-hidden="true" />
             Add command

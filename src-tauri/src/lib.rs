@@ -4,7 +4,6 @@ pub mod import;
 pub mod ipc;
 pub mod models;
 pub mod normalize;
-pub mod quick_add;
 pub mod risk;
 
 use std::path::PathBuf;
@@ -26,32 +25,15 @@ pub fn library_path(app: &AppHandle) -> AppResult<PathBuf> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    #[allow(unused_mut)]
-    let mut builder = tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_dialog::init());
-
-    #[cfg(desktop)]
-    {
-        builder = builder.plugin(tauri_plugin_global_shortcut::Builder::new().build());
-    }
 
     builder
         .setup(|app| {
             let handle = app.handle().clone();
             let database = Database::open(library_path(&handle)?)?;
-
-            #[cfg(desktop)]
-            {
-                let settings = database.with(db::settings::load)?;
-                if let Err(error) =
-                    quick_add::shortcut::register(&handle, &settings.quick_add_shortcut)
-                {
-                    // A shortcut collision must not stop the app from opening.
-                    eprintln!("could not register the Quick Add shortcut: {error}");
-                }
-            }
 
             app.manage(database);
             Ok(())
@@ -77,8 +59,6 @@ pub fn run() {
             ipc::import::import_commands,
             ipc::system::get_settings,
             ipc::system::save_settings,
-            ipc::system::open_quick_add,
-            ipc::system::close_quick_add,
             ipc::system::library_location,
         ])
         .run(tauri::generate_context!())

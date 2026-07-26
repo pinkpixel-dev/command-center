@@ -183,8 +183,8 @@ pub fn record_copy(conn: &Connection, id: i64) -> AppResult<Command> {
     get(conn, id)
 }
 
-/// Finds an existing entry with the same normalized content. Used by duplicate
-/// detection in Quick Add and, later, by the importer.
+/// Finds an existing entry with the same normalized content for duplicate
+/// detection.
 pub fn find_by_content(conn: &Connection, content: &str) -> AppResult<Option<Command>> {
     let hash = content_hash(content);
     let id: Option<i64> = conn

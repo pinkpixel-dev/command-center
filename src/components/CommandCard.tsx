@@ -9,12 +9,13 @@ import {
 } from "lucide-react";
 
 import { copySummary, kindLabel, lineCount, relativeTime, renderTemplate } from "../lib/format";
-import type { CommandEntry } from "../lib/types";
+import type { CommandEntry, CommandViewMode } from "../lib/types";
 import { Button } from "./ui/Button";
 import { RiskBadge } from "./ui/RiskBadge";
 
 export interface CommandCardProps {
   entry: CommandEntry;
+  viewMode: CommandViewMode;
   expanded: boolean;
   onToggle: () => void;
   onCopy: (text: string) => void;
@@ -26,6 +27,7 @@ export interface CommandCardProps {
 
 export function CommandCard({
   entry,
+  viewMode,
   expanded,
   onToggle,
   onCopy,
@@ -45,7 +47,10 @@ export function CommandCard({
   const bodyId = `command-body-${entry.id}`;
 
   return (
-    <article className={`card${expanded ? " is-expanded" : ""}`} data-risk={entry.riskLevel}>
+    <article
+      className={`card card--${viewMode}${expanded ? " is-expanded" : ""}`}
+      data-risk={entry.riskLevel}
+    >
       <div className="card__head">
         <button
           type="button"
