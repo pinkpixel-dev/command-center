@@ -1,15 +1,18 @@
 //! Shared AI configuration and the Rust-owned OpenAI boundary.
 
+pub mod assistant;
 mod client;
 mod credentials;
 pub mod explanation;
 pub mod import;
+pub mod inflight;
 pub mod prompts;
 pub mod redaction;
 mod transport;
 
 pub use client::{AiConnectionResult, OpenAiClient, StructuredCall};
 pub use credentials::CredentialStore;
+pub use inflight::InFlight;
 
 pub const DEFAULT_MODEL: &str = "gpt-5.6-luna";
 pub const CURATED_MODELS: &[&str] = &[
@@ -45,6 +48,8 @@ pub fn normalize_model_id(value: &str) -> Option<String> {
 pub struct AiService {
     pub client: OpenAiClient,
     pub credentials: CredentialStore,
+    /// Assistant requests that can still be cancelled.
+    pub inflight: InFlight,
 }
 
 impl AiService {
@@ -52,6 +57,7 @@ impl AiService {
         Ok(Self {
             client: OpenAiClient::new()?,
             credentials: CredentialStore,
+            inflight: InFlight::default(),
         })
     }
 }

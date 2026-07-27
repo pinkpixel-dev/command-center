@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { AssistantDock } from "./components/assistant/AssistantDock";
 import { CollectionActions } from "./components/CollectionActions";
 import { CollectionManager } from "./components/CollectionManager";
 import type { CollectionManagerIntent } from "./components/CollectionManager";
@@ -19,31 +20,26 @@ import { Button } from "./components/ui/Button";
 import { useToast } from "./components/ui/Toast";
 import { useAiStatus } from "./hooks/useAiStatus";
 import { useCommandActions } from "./hooks/useCommandActions";
+import { useCommandEditor } from "./hooks/useCommandEditor";
 import { useDebounced } from "./hooks/useDebounced";
 import { useHotkeys } from "./hooks/useHotkeys";
 import { useLibrary } from "./hooks/useLibrary";
 import { useSettings, useTheme } from "./hooks/useSettings";
+import { proposalToInput } from "./lib/assistant";
+import type { AssistantContext } from "./lib/assistant";
 import { scopeTitle } from "./lib/format";
 import { api, toAppError } from "./lib/ipc";
 import { backupLibraryDatabase, exportLibraryMarkdown } from "./lib/library-files";
-import { emptyCommandInput, toCommandInput } from "./lib/types";
 import type {
   AppView,
   Collection,
   CommandEntry,
-  CommandInput,
   CommandKind,
+  CommandProposal,
   ListQuery,
   Scope,
   SortOrder,
 } from "./lib/types";
-
-interface EditorState {
-  open: boolean;
-  mode: "create" | "edit";
-  id: number | null;
-  initial: CommandInput;
-}
 
 export default function App() {
   const [scope, setScope] = useState<Scope>({ type: "all" });
@@ -58,17 +54,11 @@ export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [assistantContext, setAssistantContext] = useState<AssistantContext | null>(null);
   const [pendingDelete, setPendingDelete] = useState<CommandEntry | null>(null);
   const [pendingCollectionDelete, setPendingCollectionDelete] = useState<Collection | null>(null);
   const [deletingCollection, setDeletingCollection] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
-  const [editor, setEditor] = useState<EditorState>({
-    open: false,
-    mode: "create",
-    id: null,
-    initial: emptyCommandInput(),
-  });
 
   const searchRef = useRef<HTMLInputElement>(null);
   const { notify } = useToast();
@@ -90,6 +80,7 @@ export default function App() {
 
   const { entries, stats, tags, collections, loading, error, refresh } = useLibrary(filter);
   const actions = useCommandActions(refresh);
+  const editor = useCommandEditor(actions.save);
   const ai = useAiStatus(settings.aiEnabled);
 
   // Settings is where a key is added or removed, so the AI-backed entry points
@@ -98,41 +89,35 @@ export default function App() {
     if (view !== "settings") ai.refresh();
   }, [ai.refresh, view]);
 
-  // Turning AI off while Import is open must not leave the user on that screen.
+  // Turning AI off while Import or the assistant is open must not leave either
+  // on screen.
   useEffect(() => {
     if (view === "import" && !ai.ready) setView("library");
   }, [ai.ready, view]);
 
-  const openCreate = useCallback(() => {
-    setFormError(null);
-    setEditor({
-      open: true,
-      mode: "create",
-      id: null,
-      initial: emptyCommandInput({
-        collectionIds: scope.type === "collection" ? [scope.id] : [],
-        tags: scope.type === "tag" ? [scope.name] : [],
-      }),
-    });
-  }, [scope]);
+  useEffect(() => {
+    if (!ai.ready) setAssistantOpen(false);
+  }, [ai.ready]);
 
-  const openEdit = useCallback((entry: CommandEntry) => {
-    setFormError(null);
-    setEditor({ open: true, mode: "edit", id: entry.id, initial: toCommandInput(entry) });
+  const openCreate = useCallback(() => {
+    editor.openCreate({
+      collectionIds: scope.type === "collection" ? [scope.id] : [],
+      tags: scope.type === "tag" ? [scope.name] : [],
+    });
+  }, [editor, scope]);
+
+  const openAssistant = useCallback((context: AssistantContext | null) => {
+    setAssistantContext(context);
+    setAssistantOpen(true);
+    setNavOpen(false);
   }, []);
 
-  const submitEditor = async (input: CommandInput) => {
-    setSaving(true);
-    setFormError(null);
-    try {
-      await actions.save(input, editor.id);
-      setEditor((current) => ({ ...current, open: false }));
-    } catch (caught) {
-      setFormError(toAppError(caught).message);
-    } finally {
-      setSaving(false);
-    }
-  };
+  // A proposal reaches the library the long way round: through the same form
+  // every other new entry goes through.
+  const reviewProposal = useCallback(
+    (proposal: CommandProposal) => editor.openWith(proposalToInput(proposal)),
+    [editor],
+  );
 
   const confirmDelete = (entry: CommandEntry) => {
     if (settings.confirmBeforeDelete) {
@@ -271,10 +256,17 @@ export default function App() {
     onShortcuts: openShortcuts,
     onSettings: () => openView("settings"),
     onImport: ai.ready ? () => openView("import") : undefined,
+    onAssistant: ai.ready ? () => openAssistant(null) : undefined,
   });
 
+  const assistantVisible = assistantOpen && ai.ready;
+
   return (
-    <div className={`shell${navOpen ? " is-nav-open" : ""}`}>
+    <div
+      className={`shell${navOpen ? " is-nav-open" : ""}${
+        assistantVisible ? " is-assistant-open" : ""
+      }`}
+    >
       <a className="skip-link" href="#library">
         Skip to the command list
       </a>
@@ -287,8 +279,11 @@ export default function App() {
           scope={scope}
           view={view}
           importAvailable={ai.ready}
+          assistantAvailable={ai.ready}
+          assistantOpen={assistantVisible}
           onScopeChange={changeScope}
           onOpenImport={() => openView("import")}
+          onOpenAssistant={() => (assistantVisible ? setAssistantOpen(false) : openAssistant(null))}
           onOpenPalette={openPalette}
           onOpenHelp={openHelp}
           onOpenShortcuts={openShortcuts}
@@ -389,10 +384,13 @@ export default function App() {
                 openEntryId={openEntryId}
                 onOpenEntry={setOpenEntryId}
                 onCopy={(entry, text) => void actions.copy(entry, text)}
-                onEdit={openEdit}
+                onEdit={editor.openEdit}
                 onDelete={confirmDelete}
                 onToggleFavorite={(entry) => void actions.toggleFavorite(entry)}
                 onOpenSource={(url) => void actions.openSource(url)}
+                onAskAssistant={(entry) =>
+                  openAssistant({ commandId: entry.id, title: entry.title })
+                }
                 onAdd={openCreate}
                 onRetry={() => void refresh()}
               />
@@ -402,16 +400,28 @@ export default function App() {
         )}
       </main>
 
+      <div className="shell__assistant">
+        <AssistantDock
+          open={assistantVisible}
+          context={assistantContext}
+          ready={ai.ready}
+          model={ai.status?.effectiveModel ?? null}
+          onClose={() => setAssistantOpen(false)}
+          onCopy={(text) => void actions.copyText(text)}
+          onReview={reviewProposal}
+        />
+      </div>
+
       <CommandForm
         open={editor.open}
         mode={editor.mode}
         initial={editor.initial}
         collections={collections}
         tagSuggestions={tags.map((tag) => tag.name)}
-        saving={saving}
-        error={formError}
-        onSubmit={(input) => void submitEditor(input)}
-        onClose={() => setEditor((current) => ({ ...current, open: false }))}
+        saving={editor.saving}
+        error={editor.error}
+        onSubmit={editor.submit}
+        onClose={editor.close}
       />
 
       <CollectionManager

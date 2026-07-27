@@ -15,6 +15,7 @@ import "./styles/cards.css";
 import "./styles/overlays.css";
 import "./styles/import.css";
 import "./styles/explanation.css";
+import "./styles/assistant.css";
 import "./styles/polish.css";
 
 import App from "./App";

@@ -40,7 +40,16 @@ request after you enable it and start an AI action.
   marked stale instead of quietly going wrong. Local risk rules still win, and
   a suggested preview command is only shown when those rules agree it is safer.
 
-The command assistant is not built yet. See [ROADMAP.md](DOCS/ROADMAP.md).
+- **Ask the assistant.** A panel beside the library, or a full screen on a
+  phone. Ask for a command you do not have, or open it from an entry and ask a
+  follow-up about that one. Suggested commands come back as proposals with the
+  local risk verdict already attached, and Command Center's reasons kept
+  separate from the model's. Copy one, or send it to the normal entry form to
+  review and save. Nothing runs, and nothing saves itself. The conversation
+  stays in memory, so closing the window is the whole delete story.
+
+Terminal error analysis and shell conversion are not built yet. See
+[ROADMAP.md](DOCS/ROADMAP.md).
 
 ---
 

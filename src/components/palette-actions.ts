@@ -7,6 +7,7 @@ import {
   HelpCircle,
   Keyboard,
   Library,
+  MessagesSquare,
   Plus,
   Search,
   Settings,
@@ -29,6 +30,8 @@ export interface PaletteActionHandlers {
   onSettings: () => void;
   /** Only provided when AI is on and a key is stored. */
   onImport?: () => void;
+  /** Same gate as Import. */
+  onAssistant?: () => void;
 }
 
 export function createPaletteActions(handlers: PaletteActionHandlers): PaletteAction[] {
@@ -41,6 +44,19 @@ export function createPaletteActions(handlers: PaletteActionHandlers): PaletteAc
           icon: FileInput,
           keywords: ["ai", "openai", "markdown", "readme"],
           onSelect: handlers.onImport,
+        },
+      ]
+    : [];
+
+  const assistantAction: PaletteAction[] = handlers.onAssistant
+    ? [
+        {
+          id: "open-assistant",
+          label: "Ask the assistant",
+          description: "Find a command or ask about one you saved",
+          icon: MessagesSquare,
+          keywords: ["ai", "openai", "chat", "help", "explain"],
+          onSelect: handlers.onAssistant,
         },
       ]
     : [];
@@ -90,6 +106,7 @@ export function createPaletteActions(handlers: PaletteActionHandlers): PaletteAc
       icon: Terminal,
       onSelect: () => handlers.onScopeChange({ type: "scripts" }),
     },
+    ...assistantAction,
     ...importAction,
     {
       id: "manage-collections",

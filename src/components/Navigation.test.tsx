@@ -47,8 +47,11 @@ describe("library navigation", () => {
         scope={{ type: "all" }}
         view="library"
         importAvailable={false}
+        assistantAvailable={false}
+        assistantOpen={false}
         onScopeChange={vi.fn()}
         onOpenImport={vi.fn()}
+        onOpenAssistant={vi.fn()}
         onOpenPalette={onOpenPalette}
         onOpenHelp={onOpenHelp}
         onOpenShortcuts={onOpenShortcuts}
@@ -74,13 +77,15 @@ describe("library navigation", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(/Arch Rescue/i)).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Import" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Assistant" })).not.toBeInTheDocument();
     expect(container.querySelector(".sidebar__logo")).toHaveAttribute("src", "/logo.png");
     expect(screen.queryByText(/^v\d/)).not.toBeInTheDocument();
   });
 
-  it("shows Import only once AI is on with a stored key", async () => {
+  it("shows Import and the assistant only once AI is on with a stored key", async () => {
     const user = userEvent.setup();
     const onOpenImport = vi.fn();
+    const onOpenAssistant = vi.fn();
 
     render(
       <Sidebar
@@ -90,8 +95,11 @@ describe("library navigation", () => {
         scope={{ type: "all" }}
         view="library"
         importAvailable
+        assistantAvailable
+        assistantOpen={false}
         onScopeChange={vi.fn()}
         onOpenImport={onOpenImport}
+        onOpenAssistant={onOpenAssistant}
         onOpenPalette={vi.fn()}
         onOpenHelp={vi.fn()}
         onOpenShortcuts={vi.fn()}
@@ -103,5 +111,10 @@ describe("library navigation", () => {
 
     await user.click(screen.getByRole("button", { name: "Import" }));
     expect(onOpenImport).toHaveBeenCalledOnce();
+
+    const assistant = screen.getByRole("button", { name: "Assistant" });
+    expect(assistant).toHaveAttribute("aria-pressed", "false");
+    await user.click(assistant);
+    expect(onOpenAssistant).toHaveBeenCalledOnce();
   });
 });

@@ -7,13 +7,16 @@ use serde_json::{json, Value};
 
 /// Bumped whenever the wording or a schema below changes, so cached results and
 /// bug reports can be traced back to a known prompt.
-pub const PROMPT_REVISION: &str = "2026-07-26.3";
+pub const PROMPT_REVISION: &str = "2026-07-26.4";
 
 /// Ceiling the extraction prompt states and the parser enforces.
 pub const MAX_IMPORT_ITEMS: usize = 150;
 
 /// Ceiling the explanation prompt states and the parser enforces, per list.
 pub const MAX_EXPLANATION_ITEMS: usize = 12;
+
+/// Ceiling the assistant prompt states and the parser enforces.
+pub const MAX_ASSISTANT_PROPOSALS: usize = 4;
 
 pub struct StructuredTask {
     pub name: &'static str,
@@ -49,7 +52,7 @@ pub fn import_extraction() -> &'static StructuredTask {
 }
 
 const IMPORT_INSTRUCTIONS: &str = concat!(
-    "Command Center import extraction, revision 2026-07-26.3.\n\n",
+    "Command Center import extraction, revision 2026-07-26.4.\n\n",
     "You read one technical document and list the commands, scripts, and snippets ",
     "a person would want to save in a personal command library.\n\n",
     "Each item is saved as its own card and copied to a terminal later, so content has to be the ",
@@ -150,7 +153,7 @@ pub fn explanation() -> &'static StructuredTask {
 }
 
 const EXPLANATION_INSTRUCTIONS: &str = concat!(
-    "Command Center command explanation, revision 2026-07-26.3.\n\n",
+    "Command Center command explanation, revision 2026-07-26.4.\n\n",
     "You explain one saved command, script, or snippet to the person who saved it. They can read ",
     "a terminal; they want to know what this particular thing does before they run it.\n\n",
     "One response fills two views. The summary is shown on its own as the quick answer, and the ",
@@ -244,6 +247,91 @@ fn explanation_schema() -> Value {
     })
 }
 
+pub fn assistant() -> &'static StructuredTask {
+    static TASK: OnceLock<StructuredTask> = OnceLock::new();
+    TASK.get_or_init(|| StructuredTask {
+        name: "command_center_assistant",
+        instructions: ASSISTANT_INSTRUCTIONS,
+        schema: assistant_schema(),
+    })
+}
+
+const ASSISTANT_INSTRUCTIONS: &str = concat!(
+    "Command Center assistant, revision 2026-07-26.4.\n\n",
+    "You help one person work with their own terminal command library. They can read a terminal ",
+    "and they are asking you because they want a straight answer, not a lesson.\n\n",
+    "You cannot run anything, read their filesystem, or search their library. You see only what ",
+    "the message contains. Say so plainly when the answer depends on something you cannot see.\n\n",
+    "The conversation is given to you as labelled turns. Earlier turns are context; answer the ",
+    "last user message.\n\n",
+    "Rules:\n",
+    "- reply: plain sentences, no Markdown headings, no bullet characters, no code fences. Keep it ",
+    "to what was asked. A short answer to a short question is the right answer.\n",
+    "- Never put a runnable command inside reply. Commands belong in commands, and the reply ",
+    "refers to them in words.\n",
+    "- commands: the commands you are proposing, in the order the reader should consider them. ",
+    "Empty when the question does not call for one.\n",
+    "- commands[].command: exactly what the user would type, with nothing else on the line. No ",
+    "prompt character, no surrounding backticks, no explanation.\n",
+    "- Use {{PLACEHOLDER}} for any value the user has to supply, such as {{FILE}} or {{PORT}}. A ",
+    "{{PLACEHOLDER}} already in the conversation is a secret that was removed on the user's ",
+    "machine. Keep it as it is and never guess what it stood for.\n",
+    "- commands[].title: short, specific, ordinary words. Not a slug.\n",
+    "- commands[].why: one sentence on what this command does for the request.\n",
+    "- commands[].kind: command for a single command, sequence for ordered steps, script for a ",
+    "shebang or shell control flow, snippet for configuration or code.\n",
+    "- commands[].shell: bash, fish, zsh, powershell, or null when it does not matter.\n",
+    "- commands[].risk_suggestion: safe, caution, or destructive, judged by what it does on a ",
+    "normal machine. This is advice. Command Center runs its own rules and keeps the stricter ",
+    "verdict.\n",
+    "- commands[].risk_reasons: short phrases, empty when the command is ordinary.\n",
+    "- Never invent a flag, a tool, or a path. If you are unsure a flag exists, leave it out and ",
+    "say what you are unsure about in reply.\n",
+    "- At most 4 commands. Fewer is usually better.",
+);
+
+fn assistant_schema() -> Value {
+    json!({
+        "type": "object",
+        "properties": {
+            "reply": { "type": "string" },
+            "commands": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "command": { "type": "string" },
+                        "title": { "type": "string" },
+                        "why": { "type": "string" },
+                        "kind": {
+                            "type": "string",
+                            "enum": ["command", "sequence", "script", "snippet"]
+                        },
+                        "shell": { "type": ["string", "null"] },
+                        "risk_suggestion": {
+                            "type": "string",
+                            "enum": ["safe", "caution", "destructive"]
+                        },
+                        "risk_reasons": { "type": "array", "items": { "type": "string" } }
+                    },
+                    "required": [
+                        "command",
+                        "title",
+                        "why",
+                        "kind",
+                        "shell",
+                        "risk_suggestion",
+                        "risk_reasons"
+                    ],
+                    "additionalProperties": false
+                }
+            }
+        },
+        "required": ["reply", "commands"],
+        "additionalProperties": false
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -279,6 +367,7 @@ mod tests {
         assert_strict(&connection_test().schema);
         assert_strict(&import_extraction().schema);
         assert_strict(&explanation().schema);
+        assert_strict(&assistant().schema);
     }
 
     #[test]
@@ -295,6 +384,29 @@ mod tests {
         assert!(EXPLANATION_INSTRUCTIONS.contains(PROMPT_REVISION));
         // The local rules are the authority, and the prompt says so.
         assert!(EXPLANATION_INSTRUCTIONS.contains("stricter verdict"));
+    }
+
+    #[test]
+    fn assistant_instructions_state_the_limits_the_parser_enforces() {
+        assert!(ASSISTANT_INSTRUCTIONS.contains(&MAX_ASSISTANT_PROPOSALS.to_string()));
+        assert!(ASSISTANT_INSTRUCTIONS.contains("{{PLACEHOLDER}}"));
+        assert!(ASSISTANT_INSTRUCTIONS.contains(PROMPT_REVISION));
+        // The local rules are the authority, and the prompt says so.
+        assert!(ASSISTANT_INSTRUCTIONS.contains("stricter verdict"));
+    }
+
+    /// A proposal has to arrive as its own field. A command buried in prose
+    /// would skip the local risk check and the review-and-save path with it.
+    #[test]
+    fn proposed_commands_are_a_separate_field_rather_than_prose() {
+        assert!(ASSISTANT_INSTRUCTIONS.contains("Never put a runnable command inside reply"));
+
+        let command = &assistant().schema["properties"]["commands"]["items"];
+        assert_eq!(command["properties"]["command"]["type"], "string");
+        assert_eq!(
+            command["properties"]["risk_suggestion"]["enum"],
+            json!(["safe", "caution", "destructive"])
+        );
     }
 
     /// One response has to serve both the Quick and the Detailed view, so the

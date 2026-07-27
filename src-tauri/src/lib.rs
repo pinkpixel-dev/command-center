@@ -108,6 +108,8 @@ pub fn run() {
             ipc::ai::test_ai_connection,
             ipc::ai_import::prepare_ai_import,
             ipc::ai_import::run_ai_import,
+            ipc::ai_assistant::ask_assistant,
+            ipc::ai_assistant::cancel_assistant_request,
             ipc::ai_explain::get_command_explanation,
             ipc::ai_explain::explain_command,
             ipc::ai_explain::clear_ai_explanations,

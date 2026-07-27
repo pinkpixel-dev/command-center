@@ -69,7 +69,7 @@ describe("CommandExplanation", () => {
     expect(
       await screen.findByRole("button", { name: /Explain this entry/ }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/likely secrets replaced/)).toBeVisible();
+    expect(screen.getByText(/Ask AI what this entry does/)).toBeVisible();
     expect(api.explainCommand).not.toHaveBeenCalled();
   });
 
@@ -81,7 +81,7 @@ describe("CommandExplanation", () => {
       await screen.findByText("Deletes the build directory and everything inside it."),
     ).toBeVisible();
     expect(api.explainCommand).not.toHaveBeenCalled();
-    expect(screen.getByText(/AI-generated and may be wrong/)).toBeVisible();
+    expect(screen.getByText(/AI-generated results may be inaccurate/)).toBeVisible();
     expect(screen.getByText(/Written by gpt-5.6-luna/)).toBeVisible();
   });
 
@@ -141,7 +141,7 @@ describe("CommandExplanation", () => {
     setup();
 
     expect(await screen.findByText(/This entry changed after the explanation/)).toBeVisible();
-    expect(screen.getByText(/left out of search until you refresh/)).toBeVisible();
+    expect(screen.getByText(/refresh the explanation to see the latest version/)).toBeVisible();
 
     await user.click(screen.getByRole("button", { name: /Refresh/ }));
 

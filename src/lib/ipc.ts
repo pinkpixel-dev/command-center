@@ -13,6 +13,8 @@ import type {
   AiKeyStatus,
   AiStatus,
   AppSettings,
+  AssistantAsk,
+  AssistantReply,
   Collection,
   CollectionInput,
   CommandEntry,
@@ -92,6 +94,9 @@ export const api = {
   saveAiKey: (apiKey: string) => call<AiKeyStatus>("save_ai_key", { apiKey }),
   removeAiKey: () => call<AiKeyStatus>("remove_ai_key"),
   testAiConnection: () => call<AiConnectionResult>("test_ai_connection"),
+  askAssistant: (request: AssistantAsk) => call<AssistantReply>("ask_assistant", { request }),
+  cancelAssistantRequest: (requestId: number) =>
+    call<boolean>("cancel_assistant_request", { requestId }),
   getCommandExplanation: (commandId: number) =>
     call<ExplanationView | null>("get_command_explanation", { commandId }),
   explainCommand: (commandId: number) =>

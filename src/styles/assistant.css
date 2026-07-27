@@ -1,0 +1,317 @@
+/* The assistant: a docked column beside the library on desktop, a full-screen
+   sheet once the sidebar becomes a drawer. */
+
+.shell__assistant {
+  display: none;
+}
+
+.shell.is-assistant-open {
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr) var(--assistant-width);
+}
+
+.shell.is-assistant-open .shell__assistant {
+  display: block;
+  min-width: 0;
+  border-left: 1px solid var(--border);
+  background: color-mix(in oklab, var(--surface) 82%, transparent);
+  overflow: hidden;
+}
+
+.assistant {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Head --------------------------------------------------------------------- */
+
+.assistant__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.assistant__heading {
+  min-width: 0;
+}
+
+.assistant__title {
+  font-size: var(--text-base);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.assistant__subject {
+  overflow: hidden;
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.assistant__head-actions {
+  display: flex;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+/* Body --------------------------------------------------------------------- */
+
+.assistant__body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  overflow-y: auto;
+}
+
+.assistant__empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: auto 0;
+  color: var(--text-muted);
+}
+
+.assistant__empty-title {
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--text);
+}
+
+.assistant__note {
+  font-size: var(--text-xs);
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.assistant__note--stopped {
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-inset);
+}
+
+.assistant__log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.assistant__message {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.assistant__message--user {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-inset);
+}
+
+.assistant__message.is-failed {
+  opacity: 0.68;
+}
+
+.assistant__role {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--text-faint);
+}
+
+.assistant__text {
+  font-size: var(--text-sm);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.assistant__proposals {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.assistant__pending {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.assistant__dots {
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-pill);
+  background: var(--text-faint);
+  animation: assistant-pulse 1.4s var(--ease) infinite;
+}
+
+@keyframes assistant-pulse {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.assistant__error {
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--danger-quiet);
+  color: var(--text);
+  font-size: var(--text-xs);
+  line-height: 1.55;
+}
+
+.assistant__retry {
+  display: flex;
+}
+
+/* Proposal ----------------------------------------------------------------- */
+
+.proposal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+}
+
+.proposal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.proposal__title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.proposal__code {
+  max-height: 180px;
+  margin: 0;
+  overflow: auto;
+  font-size: var(--text-xs);
+}
+
+.proposal__why {
+  font-size: var(--text-xs);
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.proposal__reasons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.proposal__actions {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+/* Foot --------------------------------------------------------------------- */
+
+.assistant__foot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.assistant__disclosure {
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--text-faint);
+}
+
+.assistant__composer {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.assistant__input.input {
+  flex: 1;
+  min-height: var(--tap-target);
+  max-height: 40dvh;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-sans);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.assistant__counter {
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  text-align: right;
+}
+
+.assistant__counter.is-over {
+  color: var(--danger);
+}
+
+/* Responsive --------------------------------------------------------------- */
+
+@media (max-width: 1180px) {
+  .shell.is-assistant-open {
+    grid-template-columns: var(--sidebar-width) minmax(0, 1fr) 340px;
+  }
+}
+
+/* Below this the sidebar is already a drawer, so the panel takes the screen. */
+@media (max-width: 900px) {
+  .shell.is-assistant-open {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .shell.is-assistant-open .shell__assistant {
+    position: fixed;
+    z-index: 45;
+    inset: 0;
+    border-left: 0;
+    background: var(--bg);
+  }
+
+  .assistant__head {
+    padding-top: max(var(--space-3), env(safe-area-inset-top));
+  }
+
+  .assistant__head,
+  .assistant__body,
+  .assistant__foot {
+    padding-left: max(var(--space-4), env(safe-area-inset-left));
+    padding-right: max(var(--space-4), env(safe-area-inset-right));
+  }
+
+  .assistant__foot {
+    padding-bottom: max(var(--space-3), env(safe-area-inset-bottom));
+  }
+}

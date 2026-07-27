@@ -21,6 +21,7 @@ function setup(entry = makeEntry(), aiReady = false) {
     onEdit: vi.fn(),
     onDelete: vi.fn(),
     onOpenSource: vi.fn(),
+    onAskAssistant: vi.fn(),
   };
   const view = render(
     <CommandDetailsDialog entry={entry} open aiReady={aiReady} {...handlers} />,
@@ -103,10 +104,26 @@ describe("CommandDetailsDialog", () => {
         onEdit={vi.fn()}
         onDelete={vi.fn()}
         onOpenSource={vi.fn()}
+        onAskAssistant={vi.fn()}
       />,
     );
 
     expect(await screen.findByText("Explanation")).toBeVisible();
     expect(api.getCommandExplanation).toHaveBeenCalledWith(1);
+  });
+
+  it("hands the entry to the assistant and closes, once AI is available", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.getCommandExplanation).mockResolvedValue(null);
+
+    const withoutAi = setup();
+    expect(screen.queryByRole("button", { name: "Ask" })).not.toBeInTheDocument();
+    withoutAi.unmount();
+
+    const { onAskAssistant, onClose } = setup(makeEntry(), true);
+    await user.click(screen.getByRole("button", { name: "Ask" }));
+
+    expect(onClose).toHaveBeenCalledOnce();
+    expect(onAskAssistant).toHaveBeenCalledOnce();
   });
 });

@@ -23,6 +23,7 @@ export interface CommandListProps {
   onDelete: (entry: CommandEntry) => void;
   onToggleFavorite: (entry: CommandEntry) => void;
   onOpenSource: (url: string) => void;
+  onAskAssistant: (entry: CommandEntry) => void;
   onAdd: () => void;
   onRetry: () => void;
 }
@@ -41,6 +42,7 @@ export function CommandList({
   onDelete,
   onToggleFavorite,
   onOpenSource,
+  onAskAssistant,
   onAdd,
   onRetry,
 }: CommandListProps) {
@@ -155,6 +157,7 @@ export function CommandList({
           onEdit={() => onEdit(openEntry)}
           onDelete={() => onDelete(openEntry)}
           onOpenSource={onOpenSource}
+          onAskAssistant={() => onAskAssistant(openEntry)}
         />
       )}
     </>

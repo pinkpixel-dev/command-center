@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Copy, ExternalLink, Pencil, Trash2 } from "lucide-react";
+import { Copy, ExternalLink, MessagesSquare, Pencil, Trash2 } from "lucide-react";
 
 import { kindLabel, relativeTime, renderTemplate } from "../lib/format";
 import type { CommandEntry } from "../lib/types";
@@ -18,6 +18,8 @@ export interface CommandDetailsDialogProps {
   onEdit: () => void;
   onDelete: () => void;
   onOpenSource: (url: string) => void;
+  /** Hands this entry to the assistant panel, which replaces this dialog. */
+  onAskAssistant: () => void;
 }
 
 export function CommandDetailsDialog({
@@ -29,6 +31,7 @@ export function CommandDetailsDialog({
   onEdit,
   onDelete,
   onOpenSource,
+  onAskAssistant,
 }: CommandDetailsDialogProps) {
   const [values, setValues] = useState<Record<string, string>>({});
   const resolved = useMemo(
@@ -59,6 +62,12 @@ export function CommandDetailsDialog({
             <Pencil size={15} aria-hidden="true" />
             Edit
           </Button>
+          {aiReady && (
+            <Button variant="ghost" onClick={() => closeThen(onAskAssistant)}>
+              <MessagesSquare size={15} aria-hidden="true" />
+              Ask
+            </Button>
+          )}
           <Button variant="primary" onClick={() => onCopy(resolved)}>
             <Copy size={15} aria-hidden="true" />
             Copy

@@ -23,6 +23,7 @@ function setup(overrides: Partial<Parameters<typeof CommandList>[0]> = {}) {
     onDelete: vi.fn(),
     onToggleFavorite: vi.fn(),
     onOpenSource: vi.fn(),
+    onAskAssistant: vi.fn(),
     onAdd: vi.fn(),
     onRetry: vi.fn(),
   };

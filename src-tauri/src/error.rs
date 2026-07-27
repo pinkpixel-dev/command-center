@@ -51,6 +51,9 @@ pub enum AppError {
 
     #[error("OpenAI returned more data than this task allows.")]
     AiResponseTooLarge,
+
+    #[error("Request cancelled.")]
+    AiCancelled,
 }
 
 impl AppError {
@@ -110,6 +113,7 @@ impl AppError {
             Self::AiIncomplete(_) => "ai_incomplete",
             Self::AiMalformed(_) => "ai_malformed",
             Self::AiResponseTooLarge => "ai_response_too_large",
+            Self::AiCancelled => "ai_cancelled",
         }
     }
 }

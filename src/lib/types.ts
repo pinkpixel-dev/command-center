@@ -185,6 +185,38 @@ export interface ExplanationView {
   generatedAt: string;
 }
 
+/** A command the assistant suggested, already checked by the local rules. */
+export interface CommandProposal {
+  command: string;
+  title: string;
+  why: string;
+  kind: CommandKind;
+  shell: string | null;
+  /** The stricter of the local verdict and the model's suggestion. */
+  riskLevel: RiskLevel;
+  localReasons: string[];
+  aiReasons: string[];
+}
+
+export interface AssistantReply {
+  reply: string;
+  proposals: CommandProposal[];
+}
+
+/** One earlier message, resent so a follow-up has something to refer to. */
+export interface AssistantTurn {
+  role: "user" | "assistant";
+  text: string;
+  commands: string[];
+}
+
+export interface AssistantAsk {
+  requestId: number;
+  commandId: number | null;
+  turns: AssistantTurn[];
+  message: string;
+}
+
 /** Shape of a rejected `invoke` call. */
 export interface AppErrorPayload {
   kind:
@@ -203,7 +235,8 @@ export interface AppErrorPayload {
     | "ai_refusal"
     | "ai_incomplete"
     | "ai_malformed"
-    | "ai_response_too_large";
+    | "ai_response_too_large"
+    | "ai_cancelled";
   message: string;
 }
 

@@ -8,6 +8,8 @@ import { useToast } from "../components/ui/Toast";
 
 export interface CommandActions {
   copy: (entry: CommandEntry, text: string) => Promise<void>;
+  /** Clipboard only, for text that is not a saved entry. */
+  copyText: (text: string) => Promise<void>;
   toggleFavorite: (entry: CommandEntry) => Promise<void>;
   remove: (entry: CommandEntry) => Promise<void>;
   openSource: (url: string) => Promise<void>;
@@ -33,6 +35,20 @@ export function useCommandActions(refresh: () => Promise<void>): CommandActions 
       }
     },
     [notify, refresh],
+  );
+
+  // A suggested command has no library row, so there is no copy count to keep
+  // and nothing to refresh.
+  const copyText = useCallback(
+    async (text: string) => {
+      try {
+        await copyToClipboard(text);
+        notify("Copied to clipboard", "success");
+      } catch (caught) {
+        notify(toAppError(caught).message, "error");
+      }
+    },
+    [notify],
   );
 
   const toggleFavorite = useCallback(
@@ -82,5 +98,5 @@ export function useCommandActions(refresh: () => Promise<void>): CommandActions 
     [notify, refresh],
   );
 
-  return { copy, toggleFavorite, remove, openSource, save };
+  return { copy, copyText, toggleFavorite, remove, openSource, save };
 }

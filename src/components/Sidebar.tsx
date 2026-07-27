@@ -6,6 +6,7 @@ import {
   HelpCircle,
   Keyboard,
   Library,
+  MessagesSquare,
   Settings,
   Star,
   Terminal,
@@ -25,8 +26,12 @@ export interface SidebarProps {
   view: AppView;
   /** Import is an AI workflow, so it only appears with AI on and a key stored. */
   importAvailable: boolean;
+  /** Same gate for the assistant, plus whether its panel is already open. */
+  assistantAvailable: boolean;
+  assistantOpen: boolean;
   onScopeChange: (scope: Scope) => void;
   onOpenImport: () => void;
+  onOpenAssistant: () => void;
   onOpenPalette: () => void;
   onOpenHelp: () => void;
   onOpenShortcuts: () => void;
@@ -49,8 +54,11 @@ export function Sidebar({
   scope,
   view,
   importAvailable,
+  assistantAvailable,
+  assistantOpen,
   onScopeChange,
   onOpenImport,
+  onOpenAssistant,
   onOpenPalette,
   onOpenHelp,
   onOpenShortcuts,
@@ -165,6 +173,18 @@ export function Sidebar({
       )}
 
       <div className="sidebar__footer">
+        {assistantAvailable && (
+          <button
+            type="button"
+            className={`nav-item${assistantOpen ? " is-active" : ""}`}
+            aria-pressed={assistantOpen}
+            onClick={onOpenAssistant}
+          >
+            <MessagesSquare size={15} aria-hidden="true" />
+            <span className="nav-item__label">Assistant</span>
+          </button>
+        )}
+
         {importAvailable && (
           <button
             type="button"
