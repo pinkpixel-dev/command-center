@@ -16,8 +16,11 @@ use crate::error::{AppError, AppResult};
 pub const MAX_DOCUMENT_BYTES: usize = 64 * 1024;
 
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(180);
-const MIN_OUTPUT_TOKENS: u32 = 2_000;
-const MAX_OUTPUT_TOKENS: u32 = 12_000;
+/// Small reasoning models can spend tens of thousands of tokens thinking about
+/// a short document before they write a single character of JSON. The floor is
+/// sized for that, not for the size of the answer.
+const MIN_OUTPUT_TOKENS: u32 = 25_000;
+const MAX_OUTPUT_TOKENS: u32 = 64_000;
 const MAX_TITLE_CHARS: usize = 120;
 const MAX_DESCRIPTION_CHARS: usize = 300;
 const MAX_TAGS: usize = 5;
@@ -90,8 +93,16 @@ pub fn build_input(redacted: &str, source_name: Option<&str>) -> String {
 
 /// Long documents produce more items, so the budget follows the source size
 /// instead of a single guess that is wrong at both ends.
+///
+/// This is a ceiling, not a reservation: the account is billed for the tokens
+/// the model actually generates. Being generous costs nothing and keeps a
+/// reasoning model from running out mid-response on a short cheat sheet.
+///
+/// Reasoning effort is deliberately not set. The supported values differ by
+/// model family, and the app accepts any custom model ID, so picking one would
+/// mean guessing on the user's behalf.
 pub fn output_token_budget(document_bytes: usize) -> u32 {
-    let estimate = 1_500u32.saturating_add((document_bytes / 4) as u32);
+    let estimate = 20_000u32.saturating_add(document_bytes as u32);
     estimate.clamp(MIN_OUTPUT_TOKENS, MAX_OUTPUT_TOKENS)
 }
 
@@ -208,8 +219,17 @@ mod tests {
     #[test]
     fn the_token_budget_follows_the_document_size_within_bounds() {
         assert_eq!(output_token_budget(0), MIN_OUTPUT_TOKENS);
-        assert_eq!(output_token_budget(16 * 1024), 1_500 + 4_096);
+        assert_eq!(output_token_budget(16 * 1024), 20_000 + 16_384);
         assert_eq!(output_token_budget(MAX_DOCUMENT_BYTES), MAX_OUTPUT_TOKENS);
+    }
+
+    /// A 52-line, 2 KB cheat sheet through gpt-5-nano is the case that failed
+    /// twice in real testing. Both times the whole budget went on reasoning
+    /// before any JSON was written, so the floor is sized for the reasoning,
+    /// not for the size of the answer.
+    #[test]
+    fn a_small_document_gets_the_full_reasoning_floor() {
+        assert_eq!(output_token_budget(2 * 1024), 25_000);
     }
 
     #[test]

@@ -12,7 +12,11 @@ use crate::ai::transport::{map_provider_error, map_transport_error, read_bounded
 use crate::error::{AppError, AppResult};
 
 const RESPONSES_URL: &str = "https://api.openai.com/v1/responses";
-const CONNECTION_TEST_TOKENS: u32 = 512;
+/// The connection test returns one boolean, but the budget also has to cover
+/// whatever the model spends on reasoning before it writes that boolean. A
+/// small reasoning model will happily spend thousands of tokens on it, and an
+/// unused ceiling is not billed.
+const CONNECTION_TEST_TOKENS: u32 = 25_000;
 const CONNECTION_TEST_TIMEOUT: Duration = Duration::from_secs(45);
 
 #[derive(Debug, Clone)]
@@ -155,7 +159,15 @@ fn structured_request<'a>(call: &'a StructuredCall<'a>) -> ResponsesApiRequest<'
 struct ResponsesApiResponse {
     status: String,
     #[serde(default)]
+    incomplete_details: Option<IncompleteDetails>,
+    #[serde(default)]
     output: Vec<ResponseOutputItem>,
+}
+
+#[derive(Debug, Deserialize)]
+struct IncompleteDetails {
+    #[serde(default)]
+    reason: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -179,6 +191,24 @@ struct ConnectionTestOutput {
     ready: bool,
 }
 
+/// `max_output_tokens` is a ceiling on reasoning tokens as well as visible
+/// output, so a reasoning model can exhaust the budget on a short document.
+/// Blaming the document size would send the user down the wrong path.
+fn incomplete_error(details: Option<&IncompleteDetails>) -> AppError {
+    match details.and_then(|details| details.reason.as_deref()) {
+        Some("max_output_tokens") => AppError::AiIncomplete(
+            "The model used its whole output budget before finishing, which reasoning models can \
+             do on even a short document. Try a smaller section, or a model that spends less of \
+             the budget on reasoning."
+                .into(),
+        ),
+        Some("content_filter") => AppError::AiIncomplete(
+            "OpenAI stopped this response with its content filter.".into(),
+        ),
+        _ => AppError::AiIncomplete("OpenAI did not finish the response. Try again.".into()),
+    }
+}
+
 fn structured_output(response: &ResponsesApiResponse) -> AppResult<&str> {
     if response
         .output
@@ -190,9 +220,7 @@ fn structured_output(response: &ResponsesApiResponse) -> AppResult<&str> {
     }
 
     if response.status != "completed" {
-        return Err(AppError::AiIncomplete(
-            "OpenAI stopped before it finished the response. Try a smaller document.".into(),
-        ));
+        return Err(incomplete_error(response.incomplete_details.as_ref()));
     }
 
     response
@@ -236,6 +264,9 @@ mod tests {
         );
         assert!(request.get("api_key").is_none());
         assert!(request.get("previous_response_id").is_none());
+        // Supported effort values differ by model family, and any custom model
+        // ID is allowed, so the app never guesses one.
+        assert!(request.get("reasoning").is_none());
     }
 
     #[test]
@@ -278,6 +309,30 @@ mod tests {
 
         let empty = response(json!({ "status": "completed", "output": [] }));
         assert_eq!(structured_output(&empty).unwrap_err().kind(), "ai_malformed");
+    }
+
+    #[test]
+    fn an_exhausted_output_budget_does_not_blame_the_document_size() {
+        let exhausted = response(json!({
+            "status": "incomplete",
+            "incomplete_details": { "reason": "max_output_tokens" },
+            "output": []
+        }));
+
+        let error = structured_output(&exhausted).unwrap_err();
+        assert_eq!(error.kind(), "ai_incomplete");
+        assert!(error.to_string().contains("output budget"));
+        assert!(!error.to_string().contains("smaller document"));
+
+        let filtered = response(json!({
+            "status": "incomplete",
+            "incomplete_details": { "reason": "content_filter" },
+            "output": []
+        }));
+        assert!(structured_output(&filtered)
+            .unwrap_err()
+            .to_string()
+            .contains("content filter"));
     }
 
     #[test]

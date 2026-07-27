@@ -7,7 +7,7 @@ use serde_json::{json, Value};
 
 /// Bumped whenever the wording or a schema below changes, so cached results and
 /// bug reports can be traced back to a known prompt.
-pub const PROMPT_REVISION: &str = "2026-07-26.1";
+pub const PROMPT_REVISION: &str = "2026-07-26.2";
 
 /// Ceiling the extraction prompt states and the parser enforces.
 pub const MAX_IMPORT_ITEMS: usize = 150;
@@ -46,20 +46,31 @@ pub fn import_extraction() -> &'static StructuredTask {
 }
 
 const IMPORT_INSTRUCTIONS: &str = concat!(
-    "Command Center import extraction, revision 2026-07-26.1.\n\n",
+    "Command Center import extraction, revision 2026-07-26.2.\n\n",
     "You read one technical document and list the commands, scripts, and snippets ",
     "a person would want to save in a personal command library.\n\n",
+    "Each item is saved as its own card and copied to a terminal later, so content has to be the ",
+    "command as the user would type it, not the document's presentation of it.\n\n",
     "Rules:\n",
     "- Every line of the document is prefixed with its line number and a pipe character. Use those ",
     "numbers for source_line, and never copy a prefix into content.\n",
-    "- Only report content that appears in the document. Never invent a command, a flag, or a value.\n",
-    "- Copy each item exactly as written, including any {{PLACEHOLDER}} text. A placeholder means a ",
-    "secret was removed on the user's machine before the document was sent; leave it in place.\n",
-    "- Keep the steps of one procedure together when they are meant to run in order, and separate ",
-    "unrelated commands that happen to share a code block.\n",
+    "- Only report commands that appear in the document. Never invent a command, a flag, or a value.\n",
+    "- Default to one command per item. Group several commands into one item only when the document ",
+    "presents them as an ordered procedure where a later command depends on an earlier one. A list ",
+    "of independent commands under a shared heading is not a procedure, even when the document ",
+    "prints them as one block.\n",
+    "- When a command line ends with a comment that explains what it does, use that comment as the ",
+    "title and leave the comment out of content. `sudo fuser -k 3000/tcp   # Kill process on port` ",
+    "becomes content `sudo fuser -k 3000/tcp` with title `Kill process on port`.\n",
+    "- Clean up the document's formatting. Remove alignment padding, tabs, and trailing spaces used ",
+    "to line up columns. Remove Markdown escaping, so `\\-ltnp` becomes `-ltnp`, `\\#` becomes `#`, ",
+    "and `\\*` becomes `*`. Remove list markers, backticks, and fences. Never add escape sequences ",
+    "or backslashes of your own.\n",
+    "- Keep any {{PLACEHOLDER}} text exactly as it is. A placeholder means a secret was removed on ",
+    "the user's machine before the document was sent.\n",
     "- Drop shell prompts such as $, #, or PS>, and drop pasted result text that follows a command.\n",
     "- Set looks_like_output to true when an item is terminal output rather than something to run.\n",
-    "- title: short, specific, and imperative.\n",
+    "- title: short, specific, and written as ordinary words. Not a slug, not kebab-case.\n",
     "- description: one sentence about what the item does or when to use it, or an empty string when ",
     "the document does not say.\n",
     "- tags: at most five lowercase words or hyphenated words.\n",

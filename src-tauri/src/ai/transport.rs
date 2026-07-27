@@ -19,6 +19,10 @@ pub struct ProviderErrorEnvelope {
 pub struct ProviderError {
     #[serde(default)]
     pub code: Option<String>,
+    /// The offending field name. Matching on this keeps provider prose out of
+    /// the messages the app shows.
+    #[serde(default)]
+    pub param: Option<String>,
 }
 
 pub fn map_transport_error(error: reqwest::Error) -> AppError {
@@ -73,6 +77,15 @@ pub fn map_provider_error(status: StatusCode, body: &[u8]) -> AppError {
         );
     }
 
+    // Command Center asks for a large output ceiling so a reasoning model does
+    // not run out mid-answer. Older models cap output lower and refuse it.
+    if parsed.as_ref().and_then(|details| details.param.as_deref()) == Some("max_output_tokens") {
+        return AppError::ai_model(
+            "The selected model does not allow an output limit this large. Choose one of the \
+             listed GPT-5 models.",
+        );
+    }
+
     match status {
         StatusCode::UNAUTHORIZED | StatusCode::FORBIDDEN => {
             AppError::ai_auth("OpenAI rejected the stored API key or its permissions.")
@@ -107,6 +120,11 @@ mod tests {
             map_provider_error(StatusCode::BAD_REQUEST, context).kind(),
             "ai_response"
         );
+
+        let budget = br#"{"error":{"code":"invalid_value","param":"max_output_tokens"}}"#;
+        let error = map_provider_error(StatusCode::BAD_REQUEST, budget);
+        assert_eq!(error.kind(), "ai_model");
+        assert!(error.to_string().contains("output limit"));
 
         assert_eq!(
             map_provider_error(StatusCode::UNAUTHORIZED, b"").kind(),

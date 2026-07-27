@@ -6,7 +6,9 @@
 //! disagree in a way that would make an entry look safer than it is.
 
 use std::collections::HashMap;
+use std::sync::OnceLock;
 
+use regex::Regex;
 use rusqlite::Connection;
 
 use crate::ai::import::AiImportItem;
@@ -32,7 +34,7 @@ pub fn build(
     let mut seen_hashes: HashMap<String, usize> = HashMap::new();
 
     for (index, item) in items.into_iter().enumerate() {
-        let content = normalize_command(&item.content);
+        let content = normalize_command(&repair_escaped_padding(&item.content));
         if content.trim().is_empty() {
             continue;
         }
@@ -110,6 +112,20 @@ pub fn build(
         candidates,
         stats,
     })
+}
+
+/// Documents that line their comments up with tabs come back from some models
+/// as literal `\t` text rather than the tabs they saw. A run of them is column
+/// padding, never part of a command, so it collapses to the single space the
+/// padding stood for.
+///
+/// A lone `\t` is left alone, because `printf '\t'` and `awk -F'\t'` mean it.
+fn repair_escaped_padding(content: &str) -> String {
+    static PADDING: OnceLock<Regex> = OnceLock::new();
+    PADDING
+        .get_or_init(|| Regex::new(r"(?:\\t){2,}").expect("valid padding pattern"))
+        .replace_all(content, " ")
+        .into_owned()
 }
 
 /// A shebang, shell control flow, or a repeated command list is structural, so
@@ -286,6 +302,25 @@ mod tests {
         assert!(result.candidates[0].duplicate.is_some());
         assert!(!result.candidates[0].selected);
         assert_eq!(result.stats.duplicates, 1);
+    }
+
+    #[test]
+    fn column_padding_returned_as_escaped_text_is_repaired() {
+        let padded = item(r"sudo fuser -k 3000/tcp\t\t\t\t\t# Kill process on port");
+
+        let result = preview(vec![padded]);
+        assert_eq!(
+            result.candidates[0].content,
+            "sudo fuser -k 3000/tcp # Kill process on port"
+        );
+    }
+
+    #[test]
+    fn a_deliberate_tab_escape_survives() {
+        let awk = item(r"awk -F'\t' '{print $2}'");
+
+        let result = preview(vec![awk]);
+        assert_eq!(result.candidates[0].content, r"awk -F'\t' '{print $2}'");
     }
 
     #[test]
