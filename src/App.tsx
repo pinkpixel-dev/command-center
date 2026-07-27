@@ -195,7 +195,9 @@ export default function App() {
   useHotkeys([
     ...libraryHotkeys,
     { combo: "mod+k", allowWhileTyping: true, handler: openPalette },
-    { combo: "shift+?", allowWhileTyping: true, handler: openShortcuts },
+    // No `allowWhileTyping` here: `?` is a character someone types into the
+    // search box, the entry form, or the assistant composer.
+    { combo: "shift+?", handler: openShortcuts },
     {
       combo: "escape",
       allowWhileTyping: true,
