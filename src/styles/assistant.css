@@ -245,12 +245,6 @@
   background: var(--surface);
 }
 
-.assistant__disclosure {
-  font-size: var(--text-xs);
-  line-height: 1.5;
-  color: var(--text-faint);
-}
-
 .assistant__composer {
   display: flex;
   align-items: flex-end;

@@ -19,7 +19,7 @@ vi.mock("../lib/ipc", async (importOriginal) => {
         credentialManagerAvailable: true,
         defaultModel: "gpt-5.6-luna",
         effectiveModel: "gpt-5.6-luna",
-        models: ["gpt-5.6-luna", "gpt-5-nano"],
+        models: ["gpt-5.6-luna", "gpt-5.6-terra"],
       }),
     },
   };
@@ -48,7 +48,7 @@ describe("SettingsPanel", () => {
       credentialManagerAvailable: true,
       defaultModel: "gpt-5.6-luna",
       effectiveModel: "gpt-5.6-luna",
-      models: ["gpt-5.6-luna", "gpt-5-nano"],
+      models: ["gpt-5.6-luna", "gpt-5.6-terra"],
     });
     vi.mocked(exportLibraryMarkdown).mockReset();
     vi.mocked(backupLibraryDatabase).mockReset();

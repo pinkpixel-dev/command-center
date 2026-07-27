@@ -62,10 +62,6 @@ export function ErrorComposer({
               <ShieldCheck size={14} aria-hidden="true" />
               {redactions ?? "No likely secrets were found in this output."}
             </p>
-            <p className="field__hint">
-              Secret detection is a safety net, not a guarantee. Read the output first if it holds
-              anything you would not paste into a support ticket.
-            </p>
           </div>
 
           {groups.length > 0 && (
@@ -97,11 +93,6 @@ export function ErrorComposer({
               )}
             </div>
           )}
-
-          <p className="field__hint">
-            You get a likely cause and some checks to try, not a verdict. Any command that comes
-            back is checked against Command Center&apos;s own rules and never runs on its own.
-          </p>
 
           <div className="disclosure__actions">
             <Button variant="ghost" onClick={onDiscard} disabled={analyzing}>
@@ -142,10 +133,6 @@ export function ErrorComposer({
       <div className="assistant__empty">
         <Terminal size={20} aria-hidden="true" />
         <p className="assistant__empty-title">Paste what your terminal printed</p>
-        <p className="assistant__note">
-          The part around the failure is usually enough. You will see exactly what would be sent
-          before anything leaves this machine.
-        </p>
       </div>
 
       <label className="field" htmlFor="error-output">

@@ -106,7 +106,7 @@ export function ImportCandidateCard({
         <div className="candidate__flag candidate__flag--ai" role="note">
           <p>
             <Sparkles size={14} aria-hidden="true" />
-            <span className="candidate__ai-label">From the model, and it may be wrong</span>
+            <span className="candidate__ai-label">From the model</span>
           </p>
           {draft.aiRiskReasons.length > 0 && (
             <p className="candidate__ai-body">Risk notes: {draft.aiRiskReasons.join("; ")}</p>

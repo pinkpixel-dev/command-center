@@ -101,7 +101,6 @@ describe("AI-assisted import flow", () => {
 
     expect(await screen.findByText(/1 of 1 selected/)).toBeInTheDocument();
     expect(api.runAiImport).toHaveBeenCalledWith("docker container prune", null);
-    expect(screen.getByText(/These entries came from OpenAI and may be wrong/)).toBeInTheDocument();
   });
 
   it("labels model risk notes separately from the local ones", async () => {
@@ -112,7 +111,7 @@ describe("AI-assisted import flow", () => {
     await user.click(screen.getByRole("button", { name: /Check what would be sent/ }));
     await user.click(await screen.findByRole("button", { name: /Send to OpenAI/ }));
 
-    expect(await screen.findByText(/From the model, and it may be wrong/)).toBeInTheDocument();
+    expect(await screen.findByText(/From the model/)).toBeInTheDocument();
     expect(screen.getByText(/Risk notes: Deletes stopped containers/)).toBeInTheDocument();
     expect(screen.getByText(/Unsure about: Assumes Docker is installed/)).toBeInTheDocument();
   });

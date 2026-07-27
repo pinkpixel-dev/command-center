@@ -223,10 +223,10 @@ mod tests {
         assert_eq!(output_token_budget(MAX_DOCUMENT_BYTES), MAX_OUTPUT_TOKENS);
     }
 
-    /// A 52-line, 2 KB cheat sheet through gpt-5-nano is the case that failed
-    /// twice in real testing. Both times the whole budget went on reasoning
-    /// before any JSON was written, so the floor is sized for the reasoning,
-    /// not for the size of the answer.
+    /// A 52-line, 2 KB cheat sheet is the case that failed twice in real
+    /// testing. Both times the whole budget went on reasoning before any JSON
+    /// was written, so the floor is sized for the reasoning, not for the size
+    /// of the answer.
     #[test]
     fn a_small_document_gets_the_full_reasoning_floor() {
         assert_eq!(output_token_budget(2 * 1024), 25_000);

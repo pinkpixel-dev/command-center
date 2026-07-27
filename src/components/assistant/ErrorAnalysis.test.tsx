@@ -69,7 +69,6 @@ function setup() {
       context={null}
       initialMode="paste"
       ready
-      model="gpt-5.6-luna"
       {...handlers}
     />,
   );
@@ -198,7 +197,6 @@ describe("terminal error analysis", () => {
         context={null}
         initialMode="paste"
         ready={false}
-        model="gpt-5.6-luna"
         onClose={vi.fn()}
         onCopy={vi.fn()}
         onReview={vi.fn()}
@@ -230,7 +228,6 @@ describe("an analyzed error as a conversation", () => {
         }}
         initialMode="chat"
         ready
-        model="gpt-5.6-luna"
         onClose={vi.fn()}
         onCopy={vi.fn()}
         onReview={vi.fn()}
@@ -263,11 +260,6 @@ describe("an analyzed error as a conversation", () => {
     expect(api.askAssistant).toHaveBeenCalledWith(
       expect.objectContaining({ commandId: null, errorOutput: PASTE }),
     );
-  });
-
-  it("says the paste travels with the message", () => {
-    conversation();
-    expect(screen.getByText(/Sent with the pasted output to gpt-5.6-luna/)).toBeVisible();
   });
 
   /// Switching away mid-thread would silently discard it, so the switch is

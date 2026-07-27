@@ -213,8 +213,7 @@
   flex-wrap: wrap;
 }
 
-.import-review__suggestion,
-.import-review__origin {
+.import-review__suggestion {
   max-width: 70ch;
 }
 

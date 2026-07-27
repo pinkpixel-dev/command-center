@@ -194,7 +194,6 @@ export function AiSettingsSection({ draft, saved, onPatch }: AiSettingsSectionPr
       <h2>AI</h2>
       <CheckboxField
         label="Enable AI features"
-        hint="Off by default. When off, AI entry points stay hidden and Rust blocks AI requests."
         checked={draft.aiEnabled}
         onChange={(event) => {
           onPatch({ aiEnabled: event.target.checked });
@@ -204,18 +203,12 @@ export function AiSettingsSection({ draft, saved, onPatch }: AiSettingsSectionPr
 
       {draft.aiEnabled && (
         <div className="ai-settings">
-          <p className="settings__description">
-            AI requests go directly from Rust to OpenAI. The API key is stored by your operating
-            system, never in the library database.
-          </p>
-
           <SelectField
             label="OpenAI model"
             value={selectedModel}
             onChange={(event) => updateModel(event.target.value)}
             options={modelOptions}
             disabled={loadingStatus || !aiStatus}
-            hint="Choose a current model or enter any compatible model ID."
           />
 
           {customSelected && (
@@ -290,7 +283,6 @@ export function AiSettingsSection({ draft, saved, onPatch }: AiSettingsSectionPr
                 autoCorrect="off"
                 placeholder="Paste the key once"
                 onChange={(event) => setApiKey(event.target.value)}
-                hint="The field is cleared as soon as the operating system stores the key."
               />
               <div className="settings__button-row">
                 <Button
@@ -359,10 +351,6 @@ export function AiSettingsSection({ draft, saved, onPatch }: AiSettingsSectionPr
       <div className="ai-settings__cache">
         <div>
           <span className="field__label">Saved explanations</span>
-          <p className="field__hint">
-            Explanations are stored in the local library database so they load without another
-            request. Removing them frees that space and takes their text out of search.
-          </p>
         </div>
         <Button
           variant="secondary"

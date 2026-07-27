@@ -104,14 +104,12 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
 
         <CheckboxField
           label="Launch Command Center when you sign in"
-          hint="Uses the operating system's normal startup registration."
           checked={draft.launchAtStartup}
           onChange={(event) => patch({ launchAtStartup: event.target.checked })}
         />
 
         <CheckboxField
           label="Keep running in the tray when the window closes"
-          hint="Use the tray icon to reopen Command Center or quit it completely."
           checked={draft.closeToTray}
           onChange={(event) => patch({ closeToTray: event.target.checked })}
         />
@@ -132,16 +130,11 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
             { value: "compact", label: "Compact list" },
             { value: "cards", label: "Cards" },
           ]}
-          hint="Compact keeps each command easy to scan. Cards use more width when it is available."
         />
       </section>
 
       <section className="settings__section">
         <h2>Data</h2>
-        <p className="settings__description">
-          Export a readable Markdown copy or save a complete SQLite backup that Command Center can
-          open later.
-        </p>
         <div className="settings__button-row">
           <Button
             variant="secondary"

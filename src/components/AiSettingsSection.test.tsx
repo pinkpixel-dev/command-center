@@ -36,7 +36,7 @@ const status: AiStatus = {
   credentialManagerAvailable: true,
   defaultModel: "gpt-5.6-luna",
   effectiveModel: "gpt-5.6-luna",
-  models: ["gpt-5.6-luna", "gpt-5.6-terra", "gpt-5-nano"],
+  models: ["gpt-5.6-luna", "gpt-5.6-sol", "gpt-5.6-terra"],
 };
 
 describe("AiSettingsSection", () => {

@@ -16,7 +16,6 @@ export interface AssistantDockProps {
   initialMode: AssistantMode;
   /** AI is on, a key is stored, and the credential manager answered. */
   ready: boolean;
-  model: string | null;
   onClose: () => void;
   onCopy: (text: string) => void;
   onReview: (proposal: CommandProposal) => void;
@@ -38,7 +37,6 @@ export function AssistantDock({
   context,
   initialMode,
   ready,
-  model,
   onClose,
   onCopy,
   onReview,
@@ -78,7 +76,6 @@ export function AssistantDock({
   return (
     <AssistantPanel
       context={context}
-      model={model}
       messages={assistant.messages}
       sending={assistant.sending}
       error={assistant.error}

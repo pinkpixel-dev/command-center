@@ -131,7 +131,7 @@ mod tests {
             launch_at_startup: true,
             close_to_tray: true,
             ai_enabled: true,
-            ai_model: Some("gpt-5-nano".into()),
+            ai_model: Some("gpt-5.6-terra".into()),
         };
 
         db.with(|conn| save(conn, settings.clone())).unwrap();
@@ -143,7 +143,7 @@ mod tests {
         assert!(loaded.launch_at_startup);
         assert!(loaded.close_to_tray);
         assert!(loaded.ai_enabled);
-        assert_eq!(loaded.ai_model.as_deref(), Some("gpt-5-nano"));
+        assert_eq!(loaded.ai_model.as_deref(), Some("gpt-5.6-terra"));
     }
 
     #[test]

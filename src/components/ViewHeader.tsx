@@ -5,7 +5,7 @@ import { Button } from "./ui/Button";
 
 export interface ViewHeaderProps {
   title: string;
-  subtitle: string;
+  subtitle?: string;
   onOpenMenu: () => void;
   actions?: ReactNode;
 }
@@ -27,7 +27,7 @@ export function ViewHeader({ title, subtitle, onOpenMenu, actions }: ViewHeaderP
         </Button>
         <div className="topbar__heading">
           <h1>{title}</h1>
-          <p>{subtitle}</p>
+          {subtitle && <p>{subtitle}</p>}
         </div>
         {actions && <div className="topbar__actions">{actions}</div>}
       </div>

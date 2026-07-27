@@ -177,9 +177,6 @@ export function CollectionField({ collections, value, onChange }: CollectionFiel
         </div>
       )}
 
-      <p className="field__hint">
-        Optional. A command can belong to more than one collection.
-      </p>
     </div>
   );
 }

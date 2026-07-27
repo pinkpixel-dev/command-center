@@ -51,10 +51,6 @@ export function ImportDisclosure({
           <ShieldCheck size={14} aria-hidden="true" />
           {redactions ?? "No likely secrets were found in this document."}
         </p>
-        <p className="field__hint">
-          Secret detection is a safety net, not a guarantee. Read the document first if it holds
-          anything you would not paste into a support ticket.
-        </p>
       </div>
 
       {groups.length > 0 && (
@@ -86,11 +82,6 @@ export function ImportDisclosure({
           )}
         </div>
       )}
-
-      <p className="field__hint">
-        OpenAI returns suggested entries. Command Center checks every one of them against its own
-        rules, and nothing is saved until you review it.
-      </p>
 
       <div className="disclosure__actions">
         <Button variant="ghost" onClick={onCancel} disabled={busy}>

@@ -103,7 +103,7 @@ export function CommandForm({
           error={contentError ?? undefined}
           onChange={(event) => patch({ content: event.target.value })}
           placeholder="lsof -i :3000"
-          hint="Use {{placeholders}} for the parts that change each time."
+          hint="Use {{placeholders}} for parts that change"
         />
 
         <TextField
@@ -118,7 +118,7 @@ export function CommandForm({
           value={draft.tags}
           suggestions={tagSuggestions}
           onChange={(tags) => patch({ tags })}
-          hint="Enter or comma to add. Tags describe what a command is about."
+          hint="Enter or comma to add"
         />
 
         <CollectionField
@@ -154,7 +154,6 @@ export function CommandForm({
                 onChange={(event) =>
                   patch({ riskLevel: (event.target.value || null) as RiskLevel | null })
                 }
-                hint="Detected locally unless you set it yourself."
                 options={[
                   { value: "", label: "Detect automatically" },
                   ...RISK_LEVELS.map((risk) => ({ value: risk, label: riskLabel(risk) })),
@@ -208,7 +207,6 @@ export function CommandForm({
 
             <CheckboxField
               label="Favorite"
-              hint="Pinned to the Favorites list in the sidebar."
               checked={draft.favorite}
               onChange={(event) => patch({ favorite: event.target.checked })}
             />

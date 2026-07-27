@@ -90,12 +90,6 @@ export function ImportReview({
         </div>
       </div>
 
-      <p className="field__hint import-review__origin" role="note">
-        These entries came from OpenAI and may be wrong. Command Center re-checked every one on
-        this machine for risk, terminal output, placeholders, and duplicates. Nothing is saved
-        until you import it.
-      </p>
-
       {preview.suggestedCollection && collections.length === 0 && (
         <p className="field__hint import-review__suggestion">
           This document looks like it belongs in a collection called "{preview.suggestedCollection}".

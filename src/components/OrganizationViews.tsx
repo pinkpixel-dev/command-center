@@ -30,7 +30,6 @@ export function OrganizationViews({
       <>
         <ViewHeader
           title="All collections"
-          subtitle="Browse every collection without crowding the sidebar."
           onOpenMenu={onOpenMenu}
           actions={
             <>
@@ -59,7 +58,6 @@ export function OrganizationViews({
       <>
         <ViewHeader
           title="All tags"
-          subtitle="Browse every tag without turning the sidebar into a wall of chips."
           onOpenMenu={onOpenMenu}
           actions={
             <Button variant="secondary" size="sm" onClick={onOpenLibrary}>

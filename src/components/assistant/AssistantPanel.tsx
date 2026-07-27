@@ -13,8 +13,6 @@ export type AssistantMode = "chat" | "paste";
 
 export interface AssistantPanelProps {
   context: AssistantContext | null;
-  /** The model the request will actually use, shown before anything is sent. */
-  model: string | null;
   messages: AssistantMessage[];
   sending: boolean;
   error: string | null;
@@ -50,7 +48,6 @@ const COUNTER_VISIBLE_FROM = MAX_MESSAGE_CHARS - 300;
  */
 export function AssistantPanel({
   context,
-  model,
   messages,
   sending,
   error,
@@ -192,11 +189,6 @@ export function AssistantPanel({
 
       {mode === "chat" && (
       <div className="assistant__foot">
-        <p className="assistant__disclosure" id="assistant-disclosure">
-          {contextNote(context)} to {model ?? "OpenAI"}. Likely secrets are replaced first.
-          Answers are AI-generated and may be wrong.
-        </p>
-
         <div className="assistant__composer">
           <textarea
             id="assistant-composer"
@@ -206,7 +198,6 @@ export function AssistantPanel({
             value={draft}
             placeholder={composerPlaceholder(context)}
             aria-label="Message the assistant"
-            aria-describedby="assistant-disclosure"
             aria-invalid={overLimit || undefined}
             spellCheck
             onChange={(event) => setDraft(event.target.value)}
@@ -246,12 +237,6 @@ export function AssistantPanel({
       )}
     </aside>
   );
-}
-
-/** What travels with the message, so the footer never overstates it. */
-function contextNote(context: AssistantContext | null): string {
-  if (context === null) return "Sent";
-  return context.kind === "entry" ? "Sent with this entry" : "Sent with the pasted output";
 }
 
 function composerPlaceholder(context: AssistantContext | null): string {

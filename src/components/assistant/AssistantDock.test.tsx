@@ -46,7 +46,6 @@ function setup(overrides: Partial<Parameters<typeof AssistantDock>[0]> = {}) {
       context={null}
       initialMode="chat"
       ready
-      model="gpt-5.6-luna"
       {...handlers}
       {...overrides}
     />,
@@ -75,15 +74,6 @@ describe("AssistantDock", () => {
     const { container } = setup({ ready: false });
 
     expect(container).toBeEmptyDOMElement();
-    expect(api.askAssistant).not.toHaveBeenCalled();
-  });
-
-  it("says where the message is going before anything is sent", () => {
-    setup();
-
-    expect(screen.getByText(/Sent to gpt-5.6-luna/)).toBeVisible();
-    expect(screen.getByText(/Likely secrets are replaced first/)).toBeVisible();
-    expect(screen.getByText(/may be wrong/)).toBeVisible();
     expect(api.askAssistant).not.toHaveBeenCalled();
   });
 
@@ -225,7 +215,6 @@ describe("AssistantDock", () => {
         context={null}
         initialMode="chat"
         ready={false}
-        model="gpt-5.6-luna"
         onClose={vi.fn()}
         onCopy={vi.fn()}
         onReview={vi.fn()}
@@ -238,7 +227,6 @@ describe("AssistantDock", () => {
         context={null}
         initialMode="chat"
         ready
-        model="gpt-5.6-luna"
         onClose={vi.fn()}
         onCopy={vi.fn()}
         onReview={vi.fn()}

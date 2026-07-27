@@ -294,7 +294,6 @@ export default function App() {
           <>
             <ViewHeader
               title="Settings"
-              subtitle="Preferences are stored in the same local database as your commands."
               onOpenMenu={() => setNavOpen(true)}
               actions={
                 <Button variant="secondary" size="sm" onClick={() => setView("library")}>
@@ -312,7 +311,6 @@ export default function App() {
           <>
             <ViewHeader
               title="Import"
-              subtitle="Pull commands out of a cheat sheet, README, or your own notes. Read here, sent to OpenAI only after you say so."
               onOpenMenu={() => setNavOpen(true)}
               actions={
                 <Button variant="secondary" size="sm" onClick={() => setView("library")}>
@@ -426,7 +424,6 @@ export default function App() {
           context={assistantContext}
           initialMode={assistantMode}
           ready={ai.ready}
-          model={ai.status?.effectiveModel ?? null}
           onClose={() => setAssistantOpen(false)}
           onCopy={(text) => void actions.copyText(text)}
           onReview={reviewProposal}
