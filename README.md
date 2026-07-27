@@ -12,9 +12,6 @@
 <p align="center">
   <a href="https://github.com/pinkpixel-dev/command-center/releases">Downloads</a>
   ·
-  <a href="DOCS/OVERVIEW.md">Technical overview</a>
-  ·
-  <a href="DOCS/ROADMAP.md">Roadmap</a>
 </p>
 
 ## Download and install
@@ -176,7 +173,7 @@ The command palette also provides searchable access to library views, Import,
 the assistant, terminal-error analysis, Help, Settings, export, and backup.
 AI actions only appear when AI is enabled and a key is stored.
 
-## Where your data lives
+## Where your data is
 
 The library is one SQLite file in the platform application-data directory:
 
@@ -252,8 +249,6 @@ src-tauri/
   src/ipc/            Tauri commands exposed to the frontend
   tests/              Integration tests against real temporary databases
 ```
-
-The living implementation reference is [DOCS/OVERVIEW.md](DOCS/OVERVIEW.md).
 
 ## License and support
 
