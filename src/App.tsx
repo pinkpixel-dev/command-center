@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AssistantDock } from "./components/assistant/AssistantDock";
+import type { AssistantMode } from "./components/assistant/AssistantPanel";
 import { CollectionActions } from "./components/CollectionActions";
 import { CollectionManager } from "./components/CollectionManager";
 import type { CollectionManagerIntent } from "./components/CollectionManager";
@@ -56,6 +57,7 @@ export default function App() {
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantContext, setAssistantContext] = useState<AssistantContext | null>(null);
+  const [assistantMode, setAssistantMode] = useState<AssistantMode>("chat");
   const [pendingDelete, setPendingDelete] = useState<CommandEntry | null>(null);
   const [pendingCollectionDelete, setPendingCollectionDelete] = useState<Collection | null>(null);
   const [deletingCollection, setDeletingCollection] = useState(false);
@@ -106,10 +108,21 @@ export default function App() {
     });
   }, [editor, scope]);
 
-  const openAssistant = useCallback((context: AssistantContext | null) => {
+  const openAssistant = useCallback(
+    (context: AssistantContext | null, mode: AssistantMode = "chat") => {
+      setAssistantContext(context);
+      setAssistantMode(mode);
+      setAssistantOpen(true);
+      setNavOpen(false);
+    },
+    [],
+  );
+
+  // A finished analysis is the conversation now: the panel keeps holding it
+  // until the subject changes or AI goes off.
+  const adoptErrorAnalysis = useCallback((context: AssistantContext) => {
     setAssistantContext(context);
-    setAssistantOpen(true);
-    setNavOpen(false);
+    setAssistantMode("chat");
   }, []);
 
   // A proposal reaches the library the long way round: through the same form
@@ -259,6 +272,7 @@ export default function App() {
     onSettings: () => openView("settings"),
     onImport: ai.ready ? () => openView("import") : undefined,
     onAssistant: ai.ready ? () => openAssistant(null) : undefined,
+    onAnalyzeError: ai.ready ? () => openAssistant(null, "paste") : undefined,
   });
 
   const assistantVisible = assistantOpen && ai.ready;
@@ -391,8 +405,9 @@ export default function App() {
                 onToggleFavorite={(entry) => void actions.toggleFavorite(entry)}
                 onOpenSource={(url) => void actions.openSource(url)}
                 onAskAssistant={(entry) =>
-                  openAssistant({ commandId: entry.id, title: entry.title })
+                  openAssistant({ kind: "entry", commandId: entry.id, title: entry.title })
                 }
+                onReviewProposal={reviewProposal}
                 onAdd={openCreate}
                 onRetry={() => void refresh()}
               />
@@ -406,11 +421,13 @@ export default function App() {
         <AssistantDock
           open={assistantVisible}
           context={assistantContext}
+          initialMode={assistantMode}
           ready={ai.ready}
           model={ai.status?.effectiveModel ?? null}
           onClose={() => setAssistantOpen(false)}
           onCopy={(text) => void actions.copyText(text)}
           onReview={reviewProposal}
+          onErrorAnalyzed={adoptErrorAnalysis}
         />
       </div>
 

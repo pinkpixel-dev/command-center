@@ -1,0 +1,303 @@
+/* Terminal error analysis and shell conversion.
+   Both reuse the disclosure, explanation, and proposal styles wherever the
+   shape is the same; only what is genuinely new to these two lives here. */
+
+/* Mode switch -------------------------------------------------------------- */
+
+.assistant__modes {
+  display: flex;
+  gap: var(--space-1);
+  padding: 0 var(--space-4) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.assistant__mode {
+  flex: 1;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease),
+    background-color var(--duration-fast) var(--ease);
+}
+
+.assistant__mode:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+}
+
+.assistant__mode:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.assistant__mode.is-active {
+  color: var(--text);
+  background: var(--surface-raised);
+  border-color: var(--border);
+  font-weight: 500;
+}
+
+/* Paste surface ------------------------------------------------------------ */
+
+.assistant__paste {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.assistant__paste-input.input {
+  min-height: 9rem;
+  max-height: 45dvh;
+  padding: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+  resize: vertical;
+  white-space: pre;
+  overflow-wrap: normal;
+  overflow-x: auto;
+}
+
+.assistant__paste-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* The panel is narrow, so the disclosure drops its own framing here. */
+.disclosure.disclosure--inline {
+  max-width: none;
+  padding: var(--space-4);
+  gap: var(--space-3);
+}
+
+.disclosure--inline .disclosure__title {
+  font-size: var(--text-base);
+}
+
+/* Analysis ----------------------------------------------------------------- */
+
+.analysis {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-inset);
+}
+
+/* Confidence is a word first. Colour only reinforces what the text says, and
+   medium stays neutral: --warn as small text drops under AA on the light
+   theme, and the middle of a three-step scale reads correctly in plain text
+   anyway. Low keeps its colour because that is the one worth noticing. */
+.analysis__confidence {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.analysis__confidence[data-confidence="low"] {
+  color: var(--danger);
+  font-weight: 500;
+}
+
+.analysis__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.analysis__lines,
+.analysis__checks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.analysis__lines li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-1) var(--space-2);
+  align-items: baseline;
+}
+
+.analysis__line-no {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.analysis__quote {
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.analysis__why {
+  grid-column: 2;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+}
+
+.analysis__checks {
+  counter-reset: check;
+}
+
+.analysis__checks li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  counter-increment: check;
+}
+
+.analysis__check::before {
+  content: counter(check) ". ";
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.analysis__uncertainty {
+  padding: var(--space-2) var(--space-3);
+  border-left: 2px solid var(--border-strong);
+  font-size: var(--text-xs);
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+/* Conversion --------------------------------------------------------------- */
+
+.convert {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+.convert__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.convert__targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.convert__result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.convert__shells {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--text-faint);
+}
+
+.convert__shell {
+  font-family: var(--font-mono);
+}
+
+.convert__shell--target {
+  color: var(--text);
+}
+
+.convert__pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.convert__side {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.convert__code.code {
+  margin: 0;
+  max-height: 14rem;
+  overflow: auto;
+}
+
+.convert__code--target {
+  border-color: var(--accent-border);
+}
+
+/* Never a promise. The wording carries it; the border only draws the eye. */
+.convert__equivalence {
+  padding: var(--space-2) var(--space-3);
+  border-left: 2px solid var(--border-strong);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  background: var(--surface-inset);
+  font-size: var(--text-xs);
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.convert__equivalence[data-equivalence="partial"] {
+  border-left-color: var(--warn);
+}
+
+.convert__equivalence[data-equivalence="uncertain"] {
+  border-left-color: var(--danger);
+}
+
+.convert__safety {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+
+.convert__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* Responsive --------------------------------------------------------------- */
+
+/* Two code blocks side by side stop being readable well before this. */
+@media (max-width: 720px) {
+  .convert__pair {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 900px) {
+  .assistant__modes {
+    padding-left: max(var(--space-4), env(safe-area-inset-left));
+    padding-right: max(var(--space-4), env(safe-area-inset-right));
+  }
+}
+
+/* Same convention as the explanation view switch: a real tap target on touch,
+   an ordinary control height with a mouse. */
+@media (pointer: coarse) {
+  .assistant__mode {
+    min-height: var(--tap-target);
+  }
+}

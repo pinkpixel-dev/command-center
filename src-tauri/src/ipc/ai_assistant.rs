@@ -8,8 +8,8 @@ use serde::Deserialize;
 use tauri::async_runtime::{channel, spawn, spawn_blocking};
 use tauri::State;
 
-use crate::ai::assistant::{self, AssistantReply, AssistantRequest, EntryContext, Turn};
-use crate::ai::AiService;
+use crate::ai::assistant::{self, AssistantReply, AssistantRequest, EntryContext, Subject, Turn};
+use crate::ai::{diagnosis, AiService};
 use crate::db::settings::{self, AppSettings};
 use crate::db::{commands as commands_db, Database};
 use crate::error::{AppError, AppResult};
@@ -25,6 +25,11 @@ pub struct AssistantAsk {
     /// up by the panel, so the model only ever sees what the library holds.
     #[serde(default)]
     pub command_id: Option<i64>,
+    /// Terminal output an analysis already ran on. It is the one piece of
+    /// context the panel does send up, because a paste is never stored: it
+    /// lives in memory for as long as that conversation does.
+    #[serde(default)]
+    pub error_output: Option<String>,
     #[serde(default)]
     pub turns: Vec<Turn>,
     pub message: String,
@@ -52,6 +57,9 @@ pub async fn ask_assistant(
     if let Some(entry) = &entry {
         assistant::check_entry(&entry.content)?;
     }
+    if let Some(output) = &request.error_output {
+        diagnosis::check_output_size(output)?;
+    }
 
     let model = settings.effective_ai_model().to_owned();
     let credentials = ai.credentials.clone();
@@ -63,6 +71,7 @@ pub async fn ask_assistant(
     let client = ai.client.clone();
     let AssistantAsk {
         request_id,
+        error_output,
         turns,
         message,
         ..
@@ -75,7 +84,7 @@ pub async fn ask_assistant(
             &api_key,
             &model,
             AssistantRequest {
-                entry: entry.as_ref().map(entry_context),
+                subject: subject(entry.as_ref(), error_output.as_deref()),
                 turns: &turns,
                 message: &message,
             },
@@ -101,6 +110,17 @@ pub async fn cancel_assistant_request(
     request_id: u64,
 ) -> AppResult<bool> {
     ai.inflight.cancel(request_id)
+}
+
+/// A conversation is about one thing. An entry wins over a paste if both
+/// somehow arrive, because the entry came from the library and the paste did
+/// not.
+fn subject<'a>(entry: Option<&'a Command>, error_output: Option<&'a str>) -> Subject<'a> {
+    match (entry, error_output) {
+        (Some(entry), _) => Subject::Entry(entry_context(entry)),
+        (None, Some(output)) => Subject::TerminalError(output),
+        (None, None) => Subject::General,
+    }
 }
 
 fn entry_context(entry: &Command) -> EntryContext<'_> {

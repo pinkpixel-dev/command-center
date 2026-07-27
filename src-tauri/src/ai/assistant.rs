@@ -4,20 +4,20 @@
 //!
 //! A proposed command is the reason this module is careful. It arrives as its
 //! own field rather than buried in prose, so every one of them goes through the
-//! local risk rules before the panel can show it, and the model can raise a
-//! verdict but never lower one.
+//! local risk rules in `ai::proposal` before the panel can show it, and the
+//! model can raise a verdict but never lower one.
 
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
 use crate::ai::client::{OpenAiClient, StructuredCall};
+use crate::ai::diagnosis;
 use crate::ai::prompts::{self, MAX_ASSISTANT_PROPOSALS};
+use crate::ai::proposal::{self, CommandProposal, RawProposal};
 use crate::ai::redaction;
 use crate::error::{AppError, AppResult};
-use crate::models::{CommandKind, RiskLevel};
-use crate::normalize::normalize_command;
-use crate::risk;
+use crate::models::CommandKind;
 
 /// One message the user can type. Long enough to paste a stack of flags, short
 /// enough that the composer is not a document editor.
@@ -31,13 +31,6 @@ pub const MAX_HISTORY_CHARS: usize = 8_000;
 const MAX_TURN_CHARS: usize = 1_200;
 const MAX_HISTORY_COMMAND_CHARS: usize = 400;
 const MAX_REPLY_CHARS: usize = 2_400;
-const MAX_TITLE_CHARS: usize = 120;
-const MAX_WHY_CHARS: usize = 300;
-const MAX_REASONS: usize = 5;
-const MAX_REASON_CHARS: usize = 160;
-/// A proposal is a command, not a program. The entry form is where anything
-/// longer belongs.
-const MAX_PROPOSAL_BYTES: usize = 4 * 1024;
 /// The largest saved entry the panel will carry as context. Long enough for a
 /// real script, short enough that one question cannot become a document.
 pub const MAX_ENTRY_BYTES: usize = 16 * 1024;
@@ -77,8 +70,21 @@ pub struct EntryContext<'a> {
     pub language: Option<&'a str>,
 }
 
+/// What the conversation is about. The panel opens in one of these and stays
+/// there: a thread about a saved entry has nothing useful to say about a
+/// pasted stack trace, so switching subject starts a new conversation.
+pub enum Subject<'a> {
+    /// General command help, with nothing from the library attached.
+    General,
+    /// One saved entry, read from the library rather than sent up by the panel.
+    Entry(EntryContext<'a>),
+    /// Terminal output the user pasted, already analyzed once. Follow-ups carry
+    /// it so "which line said that?" has something to look at.
+    TerminalError(&'a str),
+}
+
 pub struct AssistantRequest<'a> {
-    pub entry: Option<EntryContext<'a>>,
+    pub subject: Subject<'a>,
     pub turns: &'a [Turn],
     pub message: &'a str,
 }
@@ -89,22 +95,6 @@ pub struct AssistantRequest<'a> {
 pub struct AssistantReply {
     pub reply: String,
     pub proposals: Vec<CommandProposal>,
-}
-
-/// A command the model suggested. The level is the stricter of the two
-/// verdicts, and each side keeps its own reasons so the panel never presents a
-/// guess as a local rule.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CommandProposal {
-    pub command: String,
-    pub title: String,
-    pub why: String,
-    pub kind: CommandKind,
-    pub shell: Option<String>,
-    pub risk_level: RiskLevel,
-    pub local_reasons: Vec<String>,
-    pub ai_reasons: Vec<String>,
 }
 
 /// Rejects a message before any network work starts.
@@ -159,8 +149,8 @@ pub fn bounded_turns(turns: &[Turn]) -> Vec<&Turn> {
 pub fn build_input(request: &AssistantRequest<'_>) -> String {
     let mut input = String::with_capacity(request.message.len() + 512);
 
-    match &request.entry {
-        Some(entry) => {
+    match &request.subject {
+        Subject::Entry(entry) => {
             input.push_str("Mode: a question about one saved entry\n");
             if !entry.title.trim().is_empty() {
                 input.push_str(&format!("Entry title: {}\n", entry.title.trim()));
@@ -176,7 +166,16 @@ pub fn build_input(request: &AssistantRequest<'_>) -> String {
             input.push_str(entry.content.trim_end());
             input.push('\n');
         }
-        None => input.push_str("Mode: general help with commands\n"),
+        Subject::TerminalError(output) => {
+            input.push_str("Mode: a follow-up about terminal output the user pasted\n");
+            input.push_str(
+                "The output is numbered so you can refer to a line. It is what the user pasted \
+                 and may be only part of the session.\n",
+            );
+            input.push_str("Terminal output:\n");
+            input.push_str(&diagnosis::numbered_lines(output));
+        }
+        Subject::General => input.push_str("Mode: general help with commands\n"),
     }
 
     let history = bounded_turns(request.turns);
@@ -232,7 +231,7 @@ fn rendered_turn(turn: &Turn) -> String {
         TurnRole::User => "User",
         TurnRole::Assistant => "Assistant",
     };
-    let text = clamp(&turn.text, MAX_TURN_CHARS);
+    let text = proposal::clamp(&turn.text, MAX_TURN_CHARS);
 
     let mut rendered = String::with_capacity(text.len() + 32);
     if !text.is_empty() {
@@ -240,7 +239,7 @@ fn rendered_turn(turn: &Turn) -> String {
     }
     if turn.role == TurnRole::Assistant {
         for command in turn.commands.iter().take(MAX_ASSISTANT_PROPOSALS) {
-            let command = clamp(command, MAX_HISTORY_COMMAND_CHARS);
+            let command = proposal::clamp(command, MAX_HISTORY_COMMAND_CHARS);
             if !command.is_empty() {
                 rendered.push_str(&format!("Assistant proposed: {command}\n"));
             }
@@ -258,24 +257,6 @@ struct RawReply {
     commands: Vec<RawProposal>,
 }
 
-#[derive(Debug, Deserialize)]
-struct RawProposal {
-    #[serde(default)]
-    command: String,
-    #[serde(default)]
-    title: String,
-    #[serde(default)]
-    why: String,
-    #[serde(default)]
-    kind: String,
-    #[serde(default)]
-    shell: Option<String>,
-    #[serde(default)]
-    risk_suggestion: String,
-    #[serde(default)]
-    risk_reasons: Vec<String>,
-}
-
 /// Bounds everything the model wrote and runs the local rules over every
 /// proposed command.
 pub fn parse(output: &str) -> AppResult<AssistantReply> {
@@ -283,84 +264,17 @@ pub fn parse(output: &str) -> AppResult<AssistantReply> {
         AppError::AiMalformed("OpenAI returned an answer the app could not read.".into())
     })?;
 
-    let reply = clamp(&raw.reply, MAX_REPLY_CHARS);
+    let reply = proposal::clamp(&raw.reply, MAX_REPLY_CHARS);
     if reply.is_empty() {
         return Err(AppError::AiMalformed(
             "OpenAI returned an answer with nothing in it.".into(),
         ));
     }
 
-    let mut proposals: Vec<CommandProposal> = Vec::new();
-    for candidate in raw.commands {
-        let Some(proposal) = review(candidate) else {
-            continue;
-        };
-        if proposals
-            .iter()
-            .any(|kept| kept.command == proposal.command)
-        {
-            continue;
-        }
-        proposals.push(proposal);
-        if proposals.len() == MAX_ASSISTANT_PROPOSALS {
-            break;
-        }
-    }
-
-    Ok(AssistantReply { reply, proposals })
-}
-
-/// Normalizes the command the way a saved entry would be, then lets the local
-/// rules have the final word on how risky it is.
-fn review(raw: RawProposal) -> Option<CommandProposal> {
-    let command = normalize_command(&raw.command);
-    if command.trim().is_empty() || command.len() > MAX_PROPOSAL_BYTES {
-        return None;
-    }
-
-    let (local_level, local_reasons) = risk::assess(&command);
-    // An unknown or missing suggestion counts as Safe, which can never lower
-    // the local verdict because the effective level is the higher of the two.
-    let suggested = RiskLevel::parse(raw.risk_suggestion.trim()).unwrap_or(RiskLevel::Safe);
-    let title = clamp(&raw.title, MAX_TITLE_CHARS);
-
-    Some(CommandProposal {
-        title: if title.is_empty() {
-            "Suggested command".to_owned()
-        } else {
-            title
-        },
-        why: clamp(&raw.why, MAX_WHY_CHARS),
-        kind: CommandKind::parse(raw.kind.trim()).unwrap_or(CommandKind::Command),
-        shell: clamp_optional(raw.shell.as_deref()),
-        risk_level: local_level.max(suggested),
-        local_reasons,
-        ai_reasons: clamp_reasons(raw.risk_reasons),
-        command,
+    Ok(AssistantReply {
+        reply,
+        proposals: proposal::review_all(raw.commands, MAX_ASSISTANT_PROPOSALS),
     })
-}
-
-fn clamp(value: &str, limit: usize) -> String {
-    value.trim().chars().take(limit).collect()
-}
-
-fn clamp_optional(value: Option<&str>) -> Option<String> {
-    let cleaned = clamp(value.unwrap_or_default(), 32);
-    (!cleaned.is_empty()).then_some(cleaned)
-}
-
-fn clamp_reasons(values: Vec<String>) -> Vec<String> {
-    let mut cleaned: Vec<String> = Vec::new();
-    for value in values {
-        let text = clamp(&value, MAX_REASON_CHARS);
-        if !text.is_empty() && !cleaned.iter().any(|kept| kept.eq_ignore_ascii_case(&text)) {
-            cleaned.push(text);
-        }
-        if cleaned.len() == MAX_REASONS {
-            break;
-        }
-    }
-    cleaned
 }
 
 #[cfg(test)]

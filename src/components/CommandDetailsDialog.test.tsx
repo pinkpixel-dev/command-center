@@ -22,6 +22,7 @@ function setup(entry = makeEntry(), aiReady = false) {
     onDelete: vi.fn(),
     onOpenSource: vi.fn(),
     onAskAssistant: vi.fn(),
+    onReviewProposal: vi.fn(),
   };
   const view = render(
     <CommandDetailsDialog entry={entry} open aiReady={aiReady} {...handlers} />,
@@ -105,6 +106,7 @@ describe("CommandDetailsDialog", () => {
         onDelete={vi.fn()}
         onOpenSource={vi.fn()}
         onAskAssistant={vi.fn()}
+      onReviewProposal={vi.fn()}
       />,
     );
 

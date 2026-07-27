@@ -48,8 +48,24 @@ request after you enable it and start an AI action.
   review and save. Nothing runs, and nothing saves itself. The conversation
   stays in memory, so closing the window is the whole delete story.
 
-Terminal error analysis and shell conversion are not built yet. See
-[ROADMAP.md](DOCS/ROADMAP.md).
+- **Read a terminal error.** Paste what your terminal printed. Before anything
+  is sent you see how much text goes out, which model receives it, and every
+  likely secret that was swapped for a placeholder. What comes back is the
+  likely cause, how much the output actually supports that reading, the lines
+  carrying the diagnosis, and what to check next, plus what it would have needed
+  to see. Pasted output is usually a fragment, and the answer says so. It opens
+  a conversation, so you can ask which line meant what.
+
+- **Convert to another shell.** Rewrite a saved entry for bash, fish, zsh, or
+  PowerShell from the entry dialog. You get both commands side by side, what
+  behaves differently, and what did not carry over. It is never called a
+  guaranteed equivalent, because it cannot be. The rewrite carries the local
+  risk verdict, and saving it creates a new entry rather than replacing the one
+  you started from.
+
+The AI features are built and tested, but none of them has been verified against
+a live OpenAI account yet. See [ROADMAP.md](DOCS/ROADMAP.md) for what is left
+before release.
 
 ---
 
@@ -115,7 +131,8 @@ src/                  React frontend
   lib/                types, IPC wrappers, pure helpers
   styles/             tokens first, then everything consumes tokens
 src-tauri/
-  src/ai/             OpenAI client, OS credentials, model config, redaction
+  src/ai/             OpenAI client, OS credentials, model config, redaction,
+                      proposal review, outbound disclosure, per-task prompts
   src/db/             schema, migrations, queries, FTS index, explanation cache
   src/import/         document parser, classification, import execution
   src/ipc/            the commands the frontend can call

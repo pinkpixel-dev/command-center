@@ -7,6 +7,7 @@ import type {
   ImportSummary,
   SnippetAnalysis,
 } from "./import";
+import type { OutboundPlan } from "./outbound";
 import type {
   AppErrorPayload,
   AiConnectionResult,
@@ -19,10 +20,14 @@ import type {
   CollectionInput,
   CommandEntry,
   CommandInput,
+  ErrorAnalysis,
   ExplanationView,
   LibraryStats,
   ListQuery,
+  ShellConversion,
+  ShellOption,
   Tag,
+  TargetShell,
 } from "./types";
 
 /** Event names the Rust side emits. */
@@ -102,6 +107,16 @@ export const api = {
   explainCommand: (commandId: number) =>
     call<ExplanationView>("explain_command", { commandId }),
   clearAiExplanations: () => call<number>("clear_ai_explanations"),
+
+  prepareErrorAnalysis: (output: string) =>
+    call<OutboundPlan>("prepare_error_analysis", { output }),
+  analyzeTerminalError: (requestId: number, output: string) =>
+    call<ErrorAnalysis>("analyze_terminal_error", { requestId, output }),
+
+  conversionShells: () => call<ShellOption[]>("conversion_shells"),
+  convertCommandShell: (requestId: number, commandId: number, targetShell: TargetShell) =>
+    call<ShellConversion>("convert_command_shell", { requestId, commandId, targetShell }),
+
   libraryLocation: () => call<string>("library_location"),
   exportLibraryMarkdown: (destination: string) =>
     call<string>("export_library_markdown", { destination }),

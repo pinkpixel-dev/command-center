@@ -5,7 +5,12 @@
  */
 
 import { emptyCommandInput } from "./types";
-import type { AssistantTurn, CommandInput, CommandProposal } from "./types";
+import type {
+  AssistantTurn,
+  CommandInput,
+  CommandProposal,
+  ErrorAnalysis,
+} from "./types";
 
 /** Matches `MAX_MESSAGE_CHARS` in `src-tauri/src/ai/assistant.rs`. */
 export const MAX_MESSAGE_CHARS = 2000;
@@ -20,14 +25,57 @@ export interface AssistantMessage {
   role: AssistantRole;
   text: string;
   proposals: CommandProposal[];
+  /**
+   * The structured reading of a pasted error. Only the message that opens an
+   * error conversation carries one; follow-ups are ordinary answers.
+   */
+  analysis?: ErrorAnalysis;
   /** Set when this message is the failed half of an exchange. */
   failed?: boolean;
 }
 
-/** What the conversation is about. `null` is general command help. */
-export interface AssistantContext {
-  commandId: number;
-  title: string;
+/**
+ * What the conversation is about. `null` is general command help.
+ *
+ * A thread about a saved entry has nothing useful to say about a pasted stack
+ * trace, so switching subject starts a new conversation rather than carrying
+ * one across.
+ */
+export type AssistantContext =
+  | { kind: "entry"; commandId: number; title: string }
+  | {
+      kind: "error";
+      /** Distinguishes one paste from the next, so a new analysis starts over. */
+      sessionId: number;
+      /** The paste itself, resent with each follow-up and never stored. */
+      output: string;
+      analysis: ErrorAnalysis;
+      title: string;
+    };
+
+/** Stable key for "is this still the same conversation?". */
+export function contextKey(context: AssistantContext | null): string {
+  if (context === null) return "general";
+  return context.kind === "entry"
+    ? `entry-${context.commandId}`
+    : `error-${context.sessionId}`;
+}
+
+/**
+ * The first message of an error conversation. The analysis renders as a card,
+ * and the text is what a follow-up resends as context, so it has to say the
+ * same thing in words.
+ */
+export function analysisMessage(analysis: ErrorAnalysis): AssistantMessage {
+  const text = [analysis.summary, analysis.cause].filter((part) => part.trim()).join(" ");
+
+  return {
+    id: messageId("assistant", 0),
+    role: "assistant",
+    text,
+    proposals: analysis.proposals,
+    analysis,
+  };
 }
 
 /**

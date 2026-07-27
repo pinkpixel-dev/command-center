@@ -2,17 +2,22 @@
 
 pub mod assistant;
 mod client;
+pub mod conversion;
 mod credentials;
+pub mod diagnosis;
+pub mod disclosure;
 pub mod explanation;
 pub mod import;
 pub mod inflight;
 pub mod prompts;
+pub mod proposal;
 pub mod redaction;
 mod transport;
 
 pub use client::{AiConnectionResult, OpenAiClient, StructuredCall};
 pub use credentials::CredentialStore;
 pub use inflight::InFlight;
+pub use proposal::CommandProposal;
 
 pub const DEFAULT_MODEL: &str = "gpt-5.6-luna";
 pub const CURATED_MODELS: &[&str] = &[

@@ -1,4 +1,5 @@
 import {
+  Bug,
   Clock,
   DatabaseBackup,
   Download,
@@ -32,6 +33,8 @@ export interface PaletteActionHandlers {
   onImport?: () => void;
   /** Same gate as Import. */
   onAssistant?: () => void;
+  /** Same gate again: opens the assistant straight onto the paste box. */
+  onAnalyzeError?: () => void;
 }
 
 export function createPaletteActions(handlers: PaletteActionHandlers): PaletteAction[] {
@@ -57,6 +60,19 @@ export function createPaletteActions(handlers: PaletteActionHandlers): PaletteAc
           icon: MessagesSquare,
           keywords: ["ai", "openai", "chat", "help", "explain"],
           onSelect: handlers.onAssistant,
+        },
+      ]
+    : [];
+
+  const errorAction: PaletteAction[] = handlers.onAnalyzeError
+    ? [
+        {
+          id: "analyze-error",
+          label: "Read a terminal error",
+          description: "Paste what failed and get a likely cause",
+          icon: Bug,
+          keywords: ["ai", "openai", "debug", "stack", "trace", "failed", "crash"],
+          onSelect: handlers.onAnalyzeError,
         },
       ]
     : [];
@@ -107,6 +123,7 @@ export function createPaletteActions(handlers: PaletteActionHandlers): PaletteAc
       onSelect: () => handlers.onScopeChange({ type: "scripts" }),
     },
     ...assistantAction,
+    ...errorAction,
     ...importAction,
     {
       id: "manage-collections",

@@ -3,6 +3,8 @@
 //! repository's size limit.
 
 use super::*;
+use crate::ai::proposal::MAX_PROPOSAL_BYTES;
+use crate::models::RiskLevel;
 use serde_json::json;
 
 fn output(overrides: serde_json::Value) -> String {
@@ -54,7 +56,7 @@ fn assistant(text: &str, commands: &[&str]) -> Turn {
 
 fn request<'a>(turns: &'a [Turn], message: &'a str) -> AssistantRequest<'a> {
     AssistantRequest {
-        entry: None,
+        subject: Subject::General,
         turns,
         message,
     }
@@ -214,7 +216,7 @@ fn entry_input_carries_the_saved_entry_and_the_conversation() {
         assistant("It removes the build directory.", &["ls build"]),
     ];
     let input = build_input(&AssistantRequest {
-        entry: Some(EntryContext {
+        subject: Subject::Entry(EntryContext {
             title: "Clean the build",
             content: "rm -r build",
             kind: CommandKind::Command,
@@ -236,6 +238,39 @@ fn entry_input_carries_the_saved_entry_and_the_conversation() {
     assert!(input.contains("New message:\nUser: is there a safer version?"));
 }
 
+/// A follow-up about a pasted error has to carry the paste, or "which line
+/// said that?" has nothing to look at. The numbering matches the analysis, so
+/// a line number means the same thing in both.
+#[test]
+fn a_pasted_error_travels_with_its_follow_up_questions() {
+    let turns = [assistant("Port 3000 is already taken.", &[])];
+    let input = build_input(&AssistantRequest {
+        subject: Subject::TerminalError("Error: listen EADDRINUSE\n  at Server.setupListen"),
+        turns: &turns,
+        message: "which line says that?",
+    });
+
+    assert!(input.contains("Mode: a follow-up about terminal output the user pasted"));
+    assert!(input.contains("1|Error: listen EADDRINUSE\n"));
+    assert!(input.contains("2|  at Server.setupListen\n"));
+    assert!(input.contains("may be only part of the session"));
+    assert!(input.contains("New message:\nUser: which line says that?"));
+}
+
+/// The paste was redacted before the analysis ran, and it is redacted again on
+/// its way back out. Placeholders survive a second pass unchanged.
+#[test]
+fn a_pasted_error_is_redacted_on_every_follow_up() {
+    let input = build_input(&AssistantRequest {
+        subject: Subject::TerminalError("connecting as password=hunter2\nrefused"),
+        turns: &[],
+        message: "why?",
+    });
+
+    assert!(!input.contains("hunter2"));
+    assert!(input.contains("{{PASSWORD}}"));
+}
+
 /// A secret can arrive from the composer or from the entry the user is asking
 /// about. One redaction pass over the assembled input covers both.
 #[test]
@@ -243,7 +278,7 @@ fn likely_secrets_are_replaced_before_the_request_is_built() {
     let key = ["sk-", "abcdefghijklmnopqrstuvwxyz012345"].concat();
     let turns = [user(&format!("I ran export OPENAI_API_KEY={key}"))];
     let input = build_input(&AssistantRequest {
-        entry: Some(EntryContext {
+        subject: Subject::Entry(EntryContext {
             title: "Deploy",
             content: "curl -H 'Authorization: Bearer abcdef1234567890abcdef' https://example.com",
             kind: CommandKind::Command,

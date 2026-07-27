@@ -3,6 +3,7 @@ import { MessageSquareText } from "lucide-react";
 import type { AssistantContext, AssistantMessage } from "../../lib/assistant";
 import type { CommandProposal } from "../../lib/types";
 import { CommandProposalCard } from "./CommandProposalCard";
+import { ErrorAnalysisCard } from "./ErrorAnalysisCard";
 
 export interface AssistantTranscriptProps {
   messages: AssistantMessage[];
@@ -50,6 +51,8 @@ export function AssistantTranscript({
         >
           <p className="assistant__role">{message.role === "user" ? "You" : "Assistant"}</p>
           <p className="assistant__text">{message.text}</p>
+
+          {message.analysis && <ErrorAnalysisCard analysis={message.analysis} />}
 
           {message.proposals.length > 0 && (
             <div className="assistant__proposals">

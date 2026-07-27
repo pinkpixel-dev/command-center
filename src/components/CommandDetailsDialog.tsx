@@ -2,7 +2,8 @@ import { useMemo, useState } from "react";
 import { Copy, ExternalLink, MessagesSquare, Pencil, Trash2 } from "lucide-react";
 
 import { kindLabel, relativeTime, renderTemplate } from "../lib/format";
-import type { CommandEntry } from "../lib/types";
+import type { CommandEntry, CommandProposal } from "../lib/types";
+import { CommandConversion } from "./CommandConversion";
 import { CommandExplanation } from "./CommandExplanation";
 import { Button } from "./ui/Button";
 import { Modal } from "./ui/Modal";
@@ -20,6 +21,8 @@ export interface CommandDetailsDialogProps {
   onOpenSource: (url: string) => void;
   /** Hands this entry to the assistant panel, which replaces this dialog. */
   onAskAssistant: () => void;
+  /** Opens a converted command in the normal entry form. Never overwrites. */
+  onReviewProposal: (proposal: CommandProposal) => void;
 }
 
 export function CommandDetailsDialog({
@@ -32,6 +35,7 @@ export function CommandDetailsDialog({
   onDelete,
   onOpenSource,
   onAskAssistant,
+  onReviewProposal,
 }: CommandDetailsDialogProps) {
   const [values, setValues] = useState<Record<string, string>>({});
   const resolved = useMemo(
@@ -139,6 +143,14 @@ export function CommandDetailsDialog({
         )}
 
         <CommandExplanation commandId={entry.id} ready={aiReady} onCopy={onCopy} />
+
+        <CommandConversion
+          commandId={entry.id}
+          entryShell={entry.shell}
+          ready={aiReady}
+          onCopy={onCopy}
+          onReview={(proposal) => closeThen(() => onReviewProposal(proposal))}
+        />
 
         <dl className="card__facts">
           {entry.operatingSystem && (

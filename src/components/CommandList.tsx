@@ -2,7 +2,7 @@ import { useRef } from "react";
 import type { KeyboardEvent } from "react";
 import { Inbox, SearchX } from "lucide-react";
 
-import type { CommandEntry, CommandViewMode } from "../lib/types";
+import type { CommandEntry, CommandProposal, CommandViewMode } from "../lib/types";
 import { CommandCard } from "./CommandCard";
 import { CommandDetailsDialog } from "./CommandDetailsDialog";
 import { Button } from "./ui/Button";
@@ -24,6 +24,8 @@ export interface CommandListProps {
   onToggleFavorite: (entry: CommandEntry) => void;
   onOpenSource: (url: string) => void;
   onAskAssistant: (entry: CommandEntry) => void;
+  /** Opens a converted command in the normal entry form. Never overwrites. */
+  onReviewProposal: (proposal: CommandProposal) => void;
   onAdd: () => void;
   onRetry: () => void;
 }
@@ -43,6 +45,7 @@ export function CommandList({
   onToggleFavorite,
   onOpenSource,
   onAskAssistant,
+  onReviewProposal,
   onAdd,
   onRetry,
 }: CommandListProps) {
@@ -158,6 +161,7 @@ export function CommandList({
           onDelete={() => onDelete(openEntry)}
           onOpenSource={onOpenSource}
           onAskAssistant={() => onAskAssistant(openEntry)}
+          onReviewProposal={onReviewProposal}
         />
       )}
     </>

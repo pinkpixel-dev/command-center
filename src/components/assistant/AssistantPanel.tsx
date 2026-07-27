@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { Eraser, RotateCcw, SendHorizontal, X } from "lucide-react";
 
 import { MAX_MESSAGE_CHARS } from "../../lib/assistant";
@@ -6,6 +7,9 @@ import type { AssistantContext, AssistantMessage } from "../../lib/assistant";
 import type { CommandProposal } from "../../lib/types";
 import { Button } from "../ui/Button";
 import { AssistantTranscript } from "./AssistantTranscript";
+
+/** Asking a question, or handing over terminal output to be read. */
+export type AssistantMode = "chat" | "paste";
 
 export interface AssistantPanelProps {
   context: AssistantContext | null;
@@ -16,6 +20,12 @@ export interface AssistantPanelProps {
   error: string | null;
   cancelled: boolean;
   retryable: boolean;
+  mode: AssistantMode;
+  /** The paste-and-disclose surface, rendered in place of the transcript. */
+  pasteView: ReactNode;
+  /** False once a conversation exists, so switching cannot discard it. */
+  canSwitchMode: boolean;
+  onModeChange: (mode: AssistantMode) => void;
   onSend: (text: string) => void;
   onCancel: () => void;
   onRetry: () => void;
@@ -24,6 +34,11 @@ export interface AssistantPanelProps {
   onCopy: (text: string) => void;
   onReview: (proposal: CommandProposal) => void;
 }
+
+const MODE_LABELS: Record<AssistantMode, string> = {
+  chat: "Ask",
+  paste: "Read an error",
+};
 
 /** Warn before the composer refuses, rather than at the moment it refuses. */
 const COUNTER_VISIBLE_FROM = MAX_MESSAGE_CHARS - 300;
@@ -41,6 +56,10 @@ export function AssistantPanel({
   error,
   cancelled,
   retryable,
+  mode,
+  pasteView,
+  canSwitchMode,
+  onModeChange,
   onSend,
   onCancel,
   onRetry,
@@ -120,28 +139,48 @@ export function AssistantPanel({
         </div>
       </header>
 
-      <div className="assistant__body" ref={logRef}>
-        <AssistantTranscript
-          messages={messages}
-          context={context}
-          sending={sending}
-          onCopy={onCopy}
-          onReview={onReview}
-        />
+      {canSwitchMode && (
+        <div className="assistant__modes" role="group" aria-label="What the assistant should do">
+          {(["chat", "paste"] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              className={`assistant__mode${mode === option ? " is-active" : ""}`}
+              aria-pressed={mode === option}
+              onClick={() => onModeChange(option)}
+            >
+              {MODE_LABELS[option]}
+            </button>
+          ))}
+        </div>
+      )}
 
-        {cancelled && (
+      <div className="assistant__body" ref={logRef}>
+        {mode === "paste" ? (
+          pasteView
+        ) : (
+          <AssistantTranscript
+            messages={messages}
+            context={context}
+            sending={sending}
+            onCopy={onCopy}
+            onReview={onReview}
+          />
+        )}
+
+        {mode === "chat" && cancelled && (
           <p className="assistant__note assistant__note--stopped" role="status">
             Stopped. Nothing was added to the conversation.
           </p>
         )}
 
-        {error && (
+        {mode === "chat" && error && (
           <p className="assistant__error" role="alert">
             {error}
           </p>
         )}
 
-        {retryable && (
+        {mode === "chat" && retryable && (
           <div className="assistant__retry">
             <Button variant="secondary" size="sm" onClick={onRetry}>
               <RotateCcw size={14} aria-hidden="true" />
@@ -151,10 +190,11 @@ export function AssistantPanel({
         )}
       </div>
 
+      {mode === "chat" && (
       <div className="assistant__foot">
         <p className="assistant__disclosure" id="assistant-disclosure">
-          {context ? `Sent with this entry to ${model ?? "OpenAI"}. ` : `Sent to ${model ?? "OpenAI"}. `}
-          Likely secrets are replaced first. Answers are AI-generated and may be wrong.
+          {contextNote(context)} to {model ?? "OpenAI"}. Likely secrets are replaced first.
+          Answers are AI-generated and may be wrong.
         </p>
 
         <div className="assistant__composer">
@@ -164,7 +204,7 @@ export function AssistantPanel({
             className="input assistant__input"
             rows={2}
             value={draft}
-            placeholder={context ? "Ask about this entry" : "Ask for a command"}
+            placeholder={composerPlaceholder(context)}
             aria-label="Message the assistant"
             aria-describedby="assistant-disclosure"
             aria-invalid={overLimit || undefined}
@@ -203,6 +243,18 @@ export function AssistantPanel({
           </p>
         )}
       </div>
+      )}
     </aside>
   );
+}
+
+/** What travels with the message, so the footer never overstates it. */
+function contextNote(context: AssistantContext | null): string {
+  if (context === null) return "Sent";
+  return context.kind === "entry" ? "Sent with this entry" : "Sent with the pasted output";
+}
+
+function composerPlaceholder(context: AssistantContext | null): string {
+  if (context === null) return "Ask for a command";
+  return context.kind === "entry" ? "Ask about this entry" : "Ask about this error";
 }

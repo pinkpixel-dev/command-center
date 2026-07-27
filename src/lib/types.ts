@@ -203,6 +203,61 @@ export interface AssistantReply {
   proposals: CommandProposal[];
 }
 
+/** How much the pasted output actually supports the reading. */
+export type AnalysisConfidence = "high" | "medium" | "low";
+
+/** A line from the paste that carries part of the diagnosis. */
+export interface RelevantLine {
+  line: number | null;
+  quote: string;
+  why: string;
+}
+
+/** Something to do next, and what doing it would tell you. */
+export interface SuggestedCheck {
+  check: string;
+  why: string;
+}
+
+/** One reading of pasted terminal output, already risk-checked locally. */
+export interface ErrorAnalysis {
+  summary: string;
+  cause: string;
+  confidence: AnalysisConfidence;
+  relevantLines: RelevantLine[];
+  checks: SuggestedCheck[];
+  proposals: CommandProposal[];
+  /** What the model would need to see to be sure. Empty when nothing. */
+  uncertainty: string;
+}
+
+export type TargetShell = "bash" | "fish" | "zsh" | "powershell";
+
+/**
+ * How much of the original behaviour survived the rewrite. There is
+ * deliberately no value meaning "exact": a conversion is never presented as a
+ * guaranteed equivalent.
+ */
+export type Equivalence = "close" | "partial" | "uncertain";
+
+/** A shell the backend will convert to, named by the backend. */
+export interface ShellOption {
+  id: TargetShell;
+  label: string;
+}
+
+export interface ShellConversion {
+  sourceShell: string | null;
+  targetShell: TargetShell;
+  original: string;
+  /** The rewrite, already checked by the local rules. */
+  converted: CommandProposal;
+  equivalence: Equivalence;
+  differences: string[];
+  unsupported: string[];
+  notes: string;
+}
+
 /** One earlier message, resent so a follow-up has something to refer to. */
 export interface AssistantTurn {
   role: "user" | "assistant";
@@ -213,6 +268,11 @@ export interface AssistantTurn {
 export interface AssistantAsk {
   requestId: number;
   commandId: number | null;
+  /**
+   * Terminal output an analysis already ran on, resent so a follow-up can
+   * still refer to it. It is never stored, here or anywhere else.
+   */
+  errorOutput: string | null;
   turns: AssistantTurn[];
   message: string;
 }

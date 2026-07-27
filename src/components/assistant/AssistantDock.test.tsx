@@ -34,11 +34,17 @@ const reply: AssistantReply = {
 };
 
 function setup(overrides: Partial<Parameters<typeof AssistantDock>[0]> = {}) {
-  const handlers = { onClose: vi.fn(), onCopy: vi.fn(), onReview: vi.fn() };
+  const handlers = {
+    onClose: vi.fn(),
+    onCopy: vi.fn(),
+    onReview: vi.fn(),
+    onErrorAnalyzed: vi.fn(),
+  };
   const view = render(
     <AssistantDock
       open
       context={null}
+      initialMode="chat"
       ready
       model="gpt-5.6-luna"
       {...handlers}
@@ -46,6 +52,12 @@ function setup(overrides: Partial<Parameters<typeof AssistantDock>[0]> = {}) {
     />,
   );
   return { ...handlers, ...view };
+}
+
+/** Request ids come from one window-wide counter, so the value is not fixed. */
+function lastRequestId(): number {
+  const calls = vi.mocked(api.askAssistant).mock.calls;
+  return calls[calls.length - 1][0].requestId;
 }
 
 async function ask(user: ReturnType<typeof userEvent.setup>, text = "how do I free disk space?") {
@@ -78,14 +90,15 @@ describe("AssistantDock", () => {
   it("carries the selected entry with the question", async () => {
     const user = userEvent.setup();
     vi.mocked(api.askAssistant).mockResolvedValue(reply);
-    setup({ context: { commandId: 7, title: "Clean up Docker" } });
+    setup({ context: { kind: "entry", commandId: 7, title: "Clean up Docker" } });
 
     expect(screen.getByText("Clean up Docker")).toBeVisible();
     await ask(user, "is there a safer version?");
 
     expect(api.askAssistant).toHaveBeenCalledWith({
-      requestId: 1,
+      requestId: expect.any(Number),
       commandId: 7,
+      errorOutput: null,
       turns: [],
       message: "is there a safer version?",
     });
@@ -131,8 +144,9 @@ describe("AssistantDock", () => {
     await ask(user, "what about images?");
 
     expect(api.askAssistant).toHaveBeenLastCalledWith({
-      requestId: 2,
+      requestId: expect.any(Number),
       commandId: null,
+      errorOutput: null,
       turns: [
         { role: "user", text: "how do I free disk space?", commands: [] },
         {
@@ -158,7 +172,7 @@ describe("AssistantDock", () => {
     await ask(user);
     const stop = await screen.findByRole("button", { name: "Stop" });
     await user.click(stop);
-    expect(api.cancelAssistantRequest).toHaveBeenCalledWith(1);
+    expect(api.cancelAssistantRequest).toHaveBeenCalledWith(lastRequestId());
 
     reject({ kind: "ai_cancelled", message: "Request cancelled." });
 
@@ -209,22 +223,26 @@ describe("AssistantDock", () => {
       <AssistantDock
         open
         context={null}
+        initialMode="chat"
         ready={false}
         model="gpt-5.6-luna"
         onClose={vi.fn()}
         onCopy={vi.fn()}
         onReview={vi.fn()}
+        onErrorAnalyzed={vi.fn()}
       />,
     );
     rerender(
       <AssistantDock
         open
         context={null}
+        initialMode="chat"
         ready
         model="gpt-5.6-luna"
         onClose={vi.fn()}
         onCopy={vi.fn()}
         onReview={vi.fn()}
+        onErrorAnalyzed={vi.fn()}
       />,
     );
 

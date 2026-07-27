@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { lastQuestion, messageId, toTurns } from "../lib/assistant";
+import { analysisMessage, contextKey, lastQuestion, messageId, toTurns } from "../lib/assistant";
 import type { AssistantContext, AssistantMessage } from "../lib/assistant";
 import { api, toAppError } from "../lib/ipc";
+import { nextRequestId } from "../lib/request-id";
 
 export interface AssistantState {
   messages: AssistantMessage[];
@@ -20,17 +21,27 @@ export interface AssistantState {
 }
 
 /**
- * Owns one conversation, in memory only. Switching entries or turning AI off
+ * Owns one conversation, in memory only. Switching subject or turning AI off
  * starts over, because a conversation about one command has nothing useful to
- * say about the next one.
+ * say about the next one, or about a stack trace.
+ *
+ * An error conversation opens with the analysis already in it. That message is
+ * the answer to a question the user asked by pasting, so it belongs in the
+ * transcript rather than above it.
  */
 export function useAssistant(context: AssistantContext | null, ready: boolean): AssistantState {
-  const [messages, setMessages] = useState<AssistantMessage[]>([]);
+  // Fixed for the life of one error session, so it is a stable dependency.
+  const seed = context?.kind === "error" ? context.analysis : null;
+  const opening = useCallback(
+    (): AssistantMessage[] => (seed ? [analysisMessage(seed)] : []),
+    [seed],
+  );
+
+  const [messages, setMessages] = useState<AssistantMessage[]>(opening);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cancelled, setCancelled] = useState(false);
 
-  const requestCount = useRef(0);
   const sequence = useRef(0);
   // The request the panel is currently waiting for. Anything else that lands
   // belongs to a conversation the user has already moved on from.
@@ -39,27 +50,29 @@ export function useAssistant(context: AssistantContext | null, ready: boolean): 
   // which would rebuild both callbacks on every message.
   const transcript = useRef<AssistantMessage[]>(messages);
   transcript.current = messages;
-  const contextId = context?.commandId ?? null;
+
+  const subjectKey = contextKey(context);
+  const commandId = context?.kind === "entry" ? context.commandId : null;
+  const errorOutput = context?.kind === "error" ? context.output : null;
 
   const reset = useCallback(() => {
     if (pending.current !== null) {
       void api.cancelAssistantRequest(pending.current).catch(() => undefined);
       pending.current = null;
     }
-    setMessages([]);
+    setMessages(opening());
     setError(null);
     setCancelled(false);
     setSending(false);
-  }, []);
+  }, [opening]);
 
   useEffect(() => {
     reset();
-  }, [contextId, ready, reset]);
+  }, [subjectKey, ready, reset]);
 
   const ask = useCallback(
     (message: string, history: AssistantMessage[]) => {
-      const requestId = requestCount.current + 1;
-      requestCount.current = requestId;
+      const requestId = nextRequestId();
       pending.current = requestId;
       sequence.current += 1;
 
@@ -78,7 +91,8 @@ export function useAssistant(context: AssistantContext | null, ready: boolean): 
       api
         .askAssistant({
           requestId,
-          commandId: contextId,
+          commandId,
+          errorOutput,
           turns: toTurns(history),
           message,
         })
@@ -117,7 +131,7 @@ export function useAssistant(context: AssistantContext | null, ready: boolean): 
           setSending(false);
         });
     },
-    [contextId],
+    [commandId, errorOutput],
   );
 
   const send = useCallback(
