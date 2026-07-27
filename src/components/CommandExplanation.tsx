@@ -55,8 +55,7 @@ export function CommandExplanation({ commandId, ready, onCopy }: CommandExplanat
       {!loading && !view && (
         <div className="explain__empty">
           <p className="explain__note">
-            Ask OpenAI what this entry does. The entry is sent with likely secrets replaced first,
-            and the answer is saved here so you only pay for it once.
+            Ask AI what this entry does. The explanation is saved here.
           </p>
           <Button variant="secondary" size="sm" loading={generating} onClick={explain}>
             <Sparkles size={15} aria-hidden="true" />
@@ -70,7 +69,7 @@ export function CommandExplanation({ commandId, ready, onCopy }: CommandExplanat
           {view.stale && (
             <p className="explain__stale" role="note">
               This entry changed after the explanation was written, so parts of it may no longer
-              match. It is left out of search until you refresh it.
+              be accurate. Please refresh the explanation to see the latest version.
             </p>
           )}
 
@@ -78,8 +77,8 @@ export function CommandExplanation({ commandId, ready, onCopy }: CommandExplanat
 
           <div className="explain__foot">
             <p className="explain__origin">
-              Written by {view.model}, {relativeTime(view.generatedAt)}. AI-generated and may be
-              wrong. Check anything you have not run before.
+              Written by {view.model}, {relativeTime(view.generatedAt)}. AI-generated results may be
+              inaccurate. Check anything you have not run before.
             </p>
             <Button variant="ghost" size="sm" loading={generating} onClick={explain}>
               <RefreshCw size={14} aria-hidden="true" />
