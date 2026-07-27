@@ -6,7 +6,7 @@ import type { AiStatus } from "../lib/types";
 export interface AiAvailability {
   status: AiStatus | null;
   /** True only when AI is on, a key is stored, and the key can be reached. */
-  importReady: boolean;
+  ready: boolean;
   refresh: () => void;
 }
 
@@ -46,7 +46,7 @@ export function useAiStatus(aiEnabled: boolean): AiAvailability {
 
   return {
     status,
-    importReady: aiEnabled && status?.keyStored === true && status.credentialManagerAvailable,
+    ready: aiEnabled && status?.keyStored === true && status.credentialManagerAvailable,
     refresh,
   };
 }

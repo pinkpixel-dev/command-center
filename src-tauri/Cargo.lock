@@ -639,7 +639,7 @@ dependencies = [
 
 [[package]]
 name = "command-center"
-version = "0.2.0"
+version = "0.8.0"
 dependencies = [
  "chrono",
  "keyring",

@@ -11,6 +11,8 @@ import { EmptyState } from "./ui/EmptyState";
 export interface CommandListProps {
   entries: CommandEntry[];
   viewMode: CommandViewMode;
+  /** Whether AI-backed actions may be shown in the full entry dialog. */
+  aiReady: boolean;
   loading: boolean;
   error: string | null;
   searching: boolean;
@@ -28,6 +30,7 @@ export interface CommandListProps {
 export function CommandList({
   entries,
   viewMode,
+  aiReady,
   loading,
   error,
   searching,
@@ -146,6 +149,7 @@ export function CommandList({
         <CommandDetailsDialog
           entry={openEntry}
           open
+          aiReady={aiReady}
           onClose={() => onOpenEntry(null)}
           onCopy={(text) => onCopy(openEntry, text)}
           onEdit={() => onEdit(openEntry)}

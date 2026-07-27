@@ -141,6 +141,50 @@ export interface AiConnectionResult {
   model: string;
 }
 
+export interface ExplanationFlag {
+  flag: string;
+  meaning: string;
+}
+
+export interface ExplanationStage {
+  stage: string;
+  purpose: string;
+}
+
+/** The effective level is the stricter of the local verdict and the model's. */
+export interface ExplanationSafety {
+  level: RiskLevel;
+  localReasons: string[];
+  aiReasons: string[];
+}
+
+/** A safer way to preview the command, already checked by the local rules. */
+export interface ExplanationPreview {
+  command: string;
+  riskLevel: RiskLevel;
+  riskReasons: string[];
+}
+
+export interface Explanation {
+  summary: string;
+  flags: ExplanationFlag[];
+  pipeline: ExplanationStage[];
+  sideEffects: string[];
+  safety: ExplanationSafety;
+  previewCommand: ExplanationPreview | null;
+  assumptions: string[];
+  caveats: string[];
+}
+
+export interface ExplanationView {
+  commandId: number;
+  explanation: Explanation;
+  model: string;
+  /** The entry changed after this explanation was written. */
+  stale: boolean;
+  generatedAt: string;
+}
+
 /** Shape of a rejected `invoke` call. */
 export interface AppErrorPayload {
   kind:

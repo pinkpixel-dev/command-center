@@ -4,6 +4,7 @@
 
 use rusqlite::{params, Connection};
 
+use crate::db::explanations;
 use crate::error::AppResult;
 
 /// Rebuilds the search row for one entry. Safe to call for an id that has no
@@ -50,11 +51,24 @@ pub fn reindex(conn: &Connection, command_id: i64) -> AppResult<()> {
         command_id,
     )?;
 
+    // Only a current explanation is searchable. A stale one contributes an
+    // empty string until the user refreshes it.
+    let explanation = explanations::current_search_text(conn, command_id)?;
+
     conn.execute(
         "INSERT INTO commands_fts
-            (title, content, description, notes, tags, collections, command_id)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-        params![title, content, description, notes, tags, collections, command_id],
+            (title, content, description, notes, tags, collections, explanation, command_id)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+        params![
+            title,
+            content,
+            description,
+            notes,
+            tags,
+            collections,
+            explanation,
+            command_id
+        ],
     )?;
 
     Ok(())

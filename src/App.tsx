@@ -100,8 +100,8 @@ export default function App() {
 
   // Turning AI off while Import is open must not leave the user on that screen.
   useEffect(() => {
-    if (view === "import" && !ai.importReady) setView("library");
-  }, [ai.importReady, view]);
+    if (view === "import" && !ai.ready) setView("library");
+  }, [ai.ready, view]);
 
   const openCreate = useCallback(() => {
     setFormError(null);
@@ -270,7 +270,7 @@ export default function App() {
     onHelp: openHelp,
     onShortcuts: openShortcuts,
     onSettings: () => openView("settings"),
-    onImport: ai.importReady ? () => openView("import") : undefined,
+    onImport: ai.ready ? () => openView("import") : undefined,
   });
 
   return (
@@ -286,7 +286,7 @@ export default function App() {
           collections={collections}
           scope={scope}
           view={view}
-          importAvailable={ai.importReady}
+          importAvailable={ai.ready}
           onScopeChange={changeScope}
           onOpenImport={() => openView("import")}
           onOpenPalette={openPalette}
@@ -326,7 +326,7 @@ export default function App() {
           </>
         )}
 
-        {view === "import" && ai.importReady && (
+        {view === "import" && ai.ready && (
           <>
             <ViewHeader
               title="Import"
@@ -385,6 +385,7 @@ export default function App() {
                 error={error}
                 searching={debouncedSearch.trim().length > 0}
                 viewMode={settings.commandViewMode}
+                aiReady={ai.ready}
                 openEntryId={openEntryId}
                 onOpenEntry={setOpenEntryId}
                 onCopy={(entry, text) => void actions.copy(entry, text)}

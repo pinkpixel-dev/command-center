@@ -1,6 +1,8 @@
 [package]
 name = "command-center"
-version = "0.2.0"
+# Kept in step with the root package.json, which is the source of truth. This
+# is what the OpenAI User-Agent header reports.
+version = "0.8.0"
 description = "Local-first library for terminal commands, scripts, and snippets"
 authors = ["Pink Pixel <admin@pinkpixel.dev>"]
 edition = "2021"

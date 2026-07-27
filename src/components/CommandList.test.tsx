@@ -31,6 +31,7 @@ function setup(overrides: Partial<Parameters<typeof CommandList>[0]> = {}) {
     <CommandList
       entries={entries}
       viewMode="compact"
+      aiReady={false}
       loading={false}
       error={null}
       searching={false}

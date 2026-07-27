@@ -108,6 +108,9 @@ pub fn run() {
             ipc::ai::test_ai_connection,
             ipc::ai_import::prepare_ai_import,
             ipc::ai_import::run_ai_import,
+            ipc::ai_explain::get_command_explanation,
+            ipc::ai_explain::explain_command,
+            ipc::ai_explain::clear_ai_explanations,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Command Center");

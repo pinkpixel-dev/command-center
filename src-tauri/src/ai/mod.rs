@@ -2,6 +2,7 @@
 
 mod client;
 mod credentials;
+pub mod explanation;
 pub mod import;
 pub mod prompts;
 pub mod redaction;

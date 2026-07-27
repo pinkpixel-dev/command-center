@@ -32,9 +32,15 @@ request after you enable it and start an AI action.
   re-checked by the same local rules the manual editor uses, and nothing is
   saved until you review it. Import only appears when AI is on with a key
   stored.
+- **Explain a saved entry.** Open an entry and ask what it actually does. You
+  get a short summary, and a detailed view with the flags, the steps, what it
+  changes on your machine, a safety review, and anything the answer had to
+  assume. The explanation is saved locally, so opening the entry again costs
+  nothing, and it joins your search. Edit the entry and its explanation is
+  marked stale instead of quietly going wrong. Local risk rules still win, and
+  a suggested preview command is only shown when those rules agree it is safer.
 
-Explanations and the command assistant are not built yet. See
-[ROADMAP.md](DOCS/ROADMAP.md).
+The command assistant is not built yet. See [ROADMAP.md](DOCS/ROADMAP.md).
 
 ---
 
@@ -101,7 +107,7 @@ src/                  React frontend
   styles/             tokens first, then everything consumes tokens
 src-tauri/
   src/ai/             OpenAI client, OS credentials, model config, redaction
-  src/db/             schema, migrations, queries, FTS index
+  src/db/             schema, migrations, queries, FTS index, explanation cache
   src/import/         document parser, classification, import execution
   src/ipc/            the commands the frontend can call
   src/risk.rs         offline risk rules

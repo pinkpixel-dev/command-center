@@ -16,6 +16,7 @@ vi.mock("../lib/ipc", async (importOriginal) => {
       saveAiKey: vi.fn(),
       removeAiKey: vi.fn(),
       testAiConnection: vi.fn(),
+      clearAiExplanations: vi.fn(),
     },
   };
 });
@@ -45,6 +46,7 @@ describe("AiSettingsSection", () => {
     vi.mocked(api.saveAiKey).mockReset();
     vi.mocked(api.removeAiKey).mockReset();
     vi.mocked(api.testAiConnection).mockReset();
+    vi.mocked(api.clearAiExplanations).mockReset();
   });
 
   it("keeps AI configuration hidden while the opt-in switch is off", async () => {
@@ -170,6 +172,34 @@ describe("AiSettingsSection", () => {
       await screen.findByText(
         "Connected with gpt-5.6-luna using Responses and structured output",
       ),
+    ).toBeInTheDocument();
+  });
+
+  it("removes saved explanations even after AI has been switched off", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.clearAiExplanations).mockResolvedValue(3);
+
+    render(
+      <AiSettingsSection draft={baseSettings} saved={baseSettings} onPatch={vi.fn()} />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Clear saved explanations" }));
+
+    expect(api.clearAiExplanations).toHaveBeenCalledOnce();
+    expect(await screen.findByText("Removed 3 saved explanations")).toBeInTheDocument();
+  });
+
+  it("says plainly when there was nothing cached to remove", async () => {
+    const user = userEvent.setup();
+    vi.mocked(api.clearAiExplanations).mockResolvedValue(0);
+    const enabled = { ...baseSettings, aiEnabled: true };
+
+    render(<AiSettingsSection draft={enabled} saved={enabled} onPatch={vi.fn()} />);
+
+    await user.click(screen.getByRole("button", { name: "Clear saved explanations" }));
+
+    expect(
+      await screen.findByText("There were no saved explanations to remove"),
     ).toBeInTheDocument();
   });
 });

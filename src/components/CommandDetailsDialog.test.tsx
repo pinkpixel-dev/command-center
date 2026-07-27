@@ -2,10 +2,19 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
+import { api } from "../lib/ipc";
 import { makeEntry } from "../test/factories";
 import { CommandDetailsDialog } from "./CommandDetailsDialog";
 
-function setup(entry = makeEntry()) {
+vi.mock("../lib/ipc", async (importOriginal) => {
+  const original = await importOriginal<typeof import("../lib/ipc")>();
+  return {
+    ...original,
+    api: { ...original.api, getCommandExplanation: vi.fn() },
+  };
+});
+
+function setup(entry = makeEntry(), aiReady = false) {
   const handlers = {
     onClose: vi.fn(),
     onCopy: vi.fn(),
@@ -13,7 +22,9 @@ function setup(entry = makeEntry()) {
     onDelete: vi.fn(),
     onOpenSource: vi.fn(),
   };
-  const view = render(<CommandDetailsDialog entry={entry} open {...handlers} />);
+  const view = render(
+    <CommandDetailsDialog entry={entry} open aiReady={aiReady} {...handlers} />,
+  );
   return { ...handlers, ...view };
 }
 
@@ -73,5 +84,29 @@ describe("CommandDetailsDialog", () => {
     await user.click(screen.getByRole("button", { name: "Delete" }));
     expect(onClose).toHaveBeenCalledTimes(2);
     expect(onDelete).toHaveBeenCalledOnce();
+  });
+
+  it("keeps Explain out of the dialog until AI is on with a stored key", async () => {
+    vi.mocked(api.getCommandExplanation).mockResolvedValue(null);
+    const { rerender } = setup();
+
+    expect(screen.queryByText("Explanation")).not.toBeInTheDocument();
+    expect(api.getCommandExplanation).not.toHaveBeenCalled();
+
+    rerender(
+      <CommandDetailsDialog
+        entry={makeEntry()}
+        open
+        aiReady
+        onClose={vi.fn()}
+        onCopy={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onOpenSource={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText("Explanation")).toBeVisible();
+    expect(api.getCommandExplanation).toHaveBeenCalledWith(1);
   });
 });

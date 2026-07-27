@@ -1,0 +1,252 @@
+/* The Explain section inside the full entry dialog, and the Settings action
+   that empties its cache. */
+
+.explain {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+
+.explain__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.explain__views {
+  display: flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-inset);
+}
+
+.explain__view {
+  min-height: 28px;
+  padding-inline: var(--space-3);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease),
+    color var(--duration-fast) var(--ease);
+}
+
+.explain__view:hover {
+  color: var(--text);
+}
+
+.explain__view.is-active {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+.explain__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.explain__note {
+  max-width: 62ch;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+}
+
+.explain__stale {
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--warn-quiet);
+  color: var(--text);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.explain__error {
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--danger-quiet);
+  color: var(--text);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.explain__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.explain__summary {
+  max-width: 70ch;
+  color: var(--text);
+  font-size: var(--text-base);
+  line-height: 1.6;
+}
+
+.explain__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.explain__terms {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.explain__terms div {
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: baseline;
+}
+
+.explain__terms dt {
+  color: var(--text);
+  font-size: var(--text-sm);
+  overflow-wrap: anywhere;
+}
+
+.explain__terms dd {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+}
+
+.explain__notes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+}
+
+.explain__notes li::before {
+  content: "– ";
+  color: var(--text-faint);
+}
+
+.explain__safety {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.explain__reasons {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+/* Which rules said what. Local reasons and model reasons never blur together. */
+.explain__source {
+  display: inline-block;
+  margin-right: var(--space-2);
+  padding-inline: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+}
+
+.explain__source--ai {
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+
+.explain__preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+}
+
+.explain__preview-code {
+  max-height: 180px;
+  overflow: auto;
+  scrollbar-width: thin;
+}
+
+.explain__preview-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.explain__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.explain__origin {
+  max-width: 62ch;
+  color: var(--text-faint);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+.ai-settings__cache {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding-top: var(--space-4);
+}
+
+.ai-settings__cache .field__hint {
+  max-width: 56ch;
+  margin-top: var(--space-1);
+}
+
+@media (max-width: 560px) {
+  .explain__foot,
+  .explain__preview-foot,
+  .ai-settings__cache {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  /* A long option name would squeeze its meaning into a two-word column, so
+     narrow screens put the meaning underneath instead. */
+  .explain__terms div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+}
+
+@media (pointer: coarse) {
+  .explain__view {
+    min-height: var(--tap-target);
+    padding-inline: var(--space-4);
+  }
+}

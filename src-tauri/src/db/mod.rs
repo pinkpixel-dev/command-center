@@ -1,5 +1,6 @@
 pub mod collections;
 pub mod commands;
+pub mod explanations;
 pub mod migrations;
 pub mod query;
 pub mod search;

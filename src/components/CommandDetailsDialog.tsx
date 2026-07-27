@@ -3,6 +3,7 @@ import { Copy, ExternalLink, Pencil, Trash2 } from "lucide-react";
 
 import { kindLabel, relativeTime, renderTemplate } from "../lib/format";
 import type { CommandEntry } from "../lib/types";
+import { CommandExplanation } from "./CommandExplanation";
 import { Button } from "./ui/Button";
 import { Modal } from "./ui/Modal";
 import { RiskBadge } from "./ui/RiskBadge";
@@ -10,6 +11,8 @@ import { RiskBadge } from "./ui/RiskBadge";
 export interface CommandDetailsDialogProps {
   entry: CommandEntry;
   open: boolean;
+  /** Whether AI-backed actions may be shown at all. */
+  aiReady: boolean;
   onClose: () => void;
   onCopy: (text: string) => void;
   onEdit: () => void;
@@ -20,6 +23,7 @@ export interface CommandDetailsDialogProps {
 export function CommandDetailsDialog({
   entry,
   open,
+  aiReady,
   onClose,
   onCopy,
   onEdit,
@@ -124,6 +128,8 @@ export function CommandDetailsDialog({
             <p>{entry.notes}</p>
           </div>
         )}
+
+        <CommandExplanation commandId={entry.id} ready={aiReady} onCopy={onCopy} />
 
         <dl className="card__facts">
           {entry.operatingSystem && (

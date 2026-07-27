@@ -27,6 +27,7 @@ export function AiSettingsSection({ draft, saved, onPatch }: AiSettingsSectionPr
   const [keyAction, setKeyAction] = useState<"save" | "remove" | null>(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [clearingCache, setClearingCache] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
 
   useEffect(() => {
@@ -166,6 +167,25 @@ export function AiSettingsSection({ draft, saved, onPatch }: AiSettingsSectionPr
       setNotice({ tone: "error", message: toAppError(caught).message });
     } finally {
       setTesting(false);
+    }
+  };
+
+  const clearExplanations = async () => {
+    setClearingCache(true);
+    setNotice(null);
+    try {
+      const removed = await api.clearAiExplanations();
+      setNotice({
+        tone: "ok",
+        message:
+          removed === 0
+            ? "There were no saved explanations to remove"
+            : `Removed ${removed} saved ${removed === 1 ? "explanation" : "explanations"}`,
+      });
+    } catch (caught) {
+      setNotice({ tone: "error", message: toAppError(caught).message });
+    } finally {
+      setClearingCache(false);
     }
   };
 
@@ -332,6 +352,27 @@ export function AiSettingsSection({ draft, saved, onPatch }: AiSettingsSectionPr
           </div>
         </div>
       )}
+
+      {/* Outside the enabled block on purpose: turning AI off hides saved
+          explanations, it does not delete them, so removing them has to stay
+          possible either way. */}
+      <div className="ai-settings__cache">
+        <div>
+          <span className="field__label">Saved explanations</span>
+          <p className="field__hint">
+            Explanations are stored in the local library database so they load without another
+            request. Removing them frees that space and takes their text out of search.
+          </p>
+        </div>
+        <Button
+          variant="secondary"
+          size="sm"
+          loading={clearingCache}
+          onClick={() => void clearExplanations()}
+        >
+          Clear saved explanations
+        </Button>
+      </div>
 
       {notice && (
         <p

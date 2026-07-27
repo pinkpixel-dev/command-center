@@ -17,6 +17,7 @@ import type {
   CollectionInput,
   CommandEntry,
   CommandInput,
+  ExplanationView,
   LibraryStats,
   ListQuery,
   Tag,
@@ -91,6 +92,11 @@ export const api = {
   saveAiKey: (apiKey: string) => call<AiKeyStatus>("save_ai_key", { apiKey }),
   removeAiKey: () => call<AiKeyStatus>("remove_ai_key"),
   testAiConnection: () => call<AiConnectionResult>("test_ai_connection"),
+  getCommandExplanation: (commandId: number) =>
+    call<ExplanationView | null>("get_command_explanation", { commandId }),
+  explainCommand: (commandId: number) =>
+    call<ExplanationView>("explain_command", { commandId }),
+  clearAiExplanations: () => call<number>("clear_ai_explanations"),
   libraryLocation: () => call<string>("library_location"),
   exportLibraryMarkdown: (destination: string) =>
     call<string>("export_library_markdown", { destination }),
