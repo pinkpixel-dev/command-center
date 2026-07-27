@@ -1,10 +1,11 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { Ellipsis, Pencil, Settings, Trash2 } from "lucide-react";
+import { Download, Ellipsis, Pencil, Settings, Trash2 } from "lucide-react";
 
 export interface CollectionActionsProps {
   collectionName: string;
   onRename: () => void;
   onDelete: () => void;
+  onExport: () => void;
   onManageAll: () => void;
 }
 
@@ -12,6 +13,7 @@ export function CollectionActions({
   collectionName,
   onRename,
   onDelete,
+  onExport,
   onManageAll,
 }: CollectionActionsProps) {
   const [open, setOpen] = useState(false);
@@ -81,6 +83,10 @@ export function CollectionActions({
           >
             <Trash2 size={15} aria-hidden="true" />
             Delete collection
+          </button>
+          <button type="button" onClick={() => runAction(onExport)}>
+            <Download size={15} aria-hidden="true" />
+            Export collection
           </button>
           <span className="collection-actions__divider" aria-hidden="true" />
           <button type="button" onClick={() => runAction(onManageAll)}>

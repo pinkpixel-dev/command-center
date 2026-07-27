@@ -3,16 +3,43 @@
 use std::fmt::Write as _;
 use std::path::Path;
 
-use crate::db::{commands, Database};
+use crate::db::{collections, commands, Database};
 use crate::error::{AppError, AppResult};
 use crate::models::Command;
 
 pub fn markdown(entries: &[Command], exported_at: &str) -> String {
-    let mut output = String::from("# Command Center library\n\n");
+    markdown_document(
+        "# Command Center library",
+        "No saved entries.",
+        entries,
+        exported_at,
+    )
+}
+
+pub fn collection_markdown(
+    collection_name: &str,
+    entries: &[Command],
+    exported_at: &str,
+) -> String {
+    markdown_document(
+        &format!("# Command Center collection: {collection_name}"),
+        "This collection has no saved entries.",
+        entries,
+        exported_at,
+    )
+}
+
+fn markdown_document(
+    heading: &str,
+    empty_message: &str,
+    entries: &[Command],
+    exported_at: &str,
+) -> String {
+    let mut output = format!("{heading}\n\n");
     let _ = writeln!(output, "Exported {exported_at}.\n");
 
     if entries.is_empty() {
-        output.push_str("No saved entries.\n");
+        let _ = writeln!(output, "{empty_message}");
         return output;
     }
 
@@ -85,6 +112,26 @@ pub fn export_markdown(db: &Database, destination: &Path) -> AppResult<()> {
         .map_err(|error| AppError::runtime(format!("could not write Markdown export: {error}")))
 }
 
+pub fn export_collection_markdown(
+    db: &Database,
+    collection_id: i64,
+    destination: &Path,
+) -> AppResult<()> {
+    validate_destination(destination, &["md", "markdown"])?;
+    let (collection, entries) = db.with(|connection| {
+        let collection = collections::get(connection, collection_id)?;
+        let entries = commands::list_for_collection(connection, collection_id)?;
+        Ok((collection, entries))
+    })?;
+    let timestamp = chrono::Utc::now().format("%B %-d, %Y at %H:%M UTC");
+    let content = collection_markdown(&collection.name, &entries, &timestamp.to_string());
+    std::fs::write(destination, content).map_err(|error| {
+        AppError::runtime(format!(
+            "could not write collection Markdown export: {error}"
+        ))
+    })
+}
+
 pub fn backup_database(db: &Database, source: &Path, destination: &Path) -> AppResult<()> {
     validate_destination(destination, &["db", "sqlite", "sqlite3"])?;
 
@@ -133,7 +180,8 @@ fn same_path(left: &Path, right: &Path) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{CommandInput, CommandKind};
+    use crate::db::collections;
+    use crate::models::{CollectionInput, CommandInput, CommandKind};
 
     fn input(title: &str, content: &str) -> CommandInput {
         CommandInput {
@@ -188,6 +236,84 @@ mod tests {
         assert!(std::fs::read_to_string(export).unwrap().contains("## List"));
         let restored = Database::open(&backup).unwrap();
         assert_eq!(restored.with(commands::stats).unwrap().total, 1);
+    }
+
+    #[test]
+    fn collection_export_only_writes_members_of_that_collection() {
+        let dir = tempfile::tempdir().unwrap();
+        let export = dir.path().join("roadmap.md");
+        let db = Database::open_in_memory().unwrap();
+        let roadmap = db
+            .with(|connection| {
+                collections::create(
+                    connection,
+                    CollectionInput {
+                        name: "Roadmap".into(),
+                        description: String::new(),
+                    },
+                )
+            })
+            .unwrap();
+        let unrelated = db
+            .with(|connection| {
+                collections::create(
+                    connection,
+                    CollectionInput {
+                        name: "Unrelated".into(),
+                        description: String::new(),
+                    },
+                )
+            })
+            .unwrap();
+
+        db.with_mut(|connection| {
+            let mut roadmap_only = input("Roadmap only", "echo roadmap");
+            roadmap_only.collection_ids = vec![roadmap];
+            commands::create(connection, roadmap_only)?;
+
+            let mut shared = input("Shared entry", "echo shared");
+            shared.collection_ids = vec![roadmap, unrelated];
+            commands::create(connection, shared)?;
+
+            let mut elsewhere = input("Elsewhere", "echo elsewhere");
+            elsewhere.collection_ids = vec![unrelated];
+            commands::create(connection, elsewhere)?;
+            Ok(())
+        })
+        .unwrap();
+
+        export_collection_markdown(&db, roadmap, &export).unwrap();
+        let rendered = std::fs::read_to_string(export).unwrap();
+        assert!(rendered.contains("# Command Center collection: Roadmap"));
+        assert!(rendered.contains("## Roadmap only"));
+        assert!(rendered.contains("## Shared entry"));
+        assert!(!rendered.contains("## Elsewhere"));
+    }
+
+    #[test]
+    fn empty_collection_export_is_a_valid_readable_document() {
+        let dir = tempfile::tempdir().unwrap();
+        let export = dir.path().join("empty.md");
+        let db = Database::open_in_memory().unwrap();
+        let empty = db
+            .with(|connection| {
+                collections::create(
+                    connection,
+                    CollectionInput {
+                        name: "Empty collection".into(),
+                        description: String::new(),
+                    },
+                )
+            })
+            .unwrap();
+        db.with_mut(|connection| commands::create(connection, input("Elsewhere", "echo no")))
+            .unwrap();
+
+        export_collection_markdown(&db, empty, &export).unwrap();
+        let rendered = std::fs::read_to_string(export).unwrap();
+        assert!(rendered.contains("# Command Center collection: Empty collection"));
+        assert!(rendered.contains("This collection has no saved entries."));
+        assert!(!rendered.contains("## Elsewhere"));
     }
 
     #[test]

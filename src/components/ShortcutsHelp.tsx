@@ -4,6 +4,7 @@ import { Modal } from "./ui/Modal";
 
 const SHORTCUTS: { keys: string; action: string }[] = [
   { keys: "Ctrl + K", action: "Open the command palette" },
+  { keys: "Ctrl/Cmd + Shift + K", action: "Open the AI assistant" },
   { keys: "/", action: "Focus search" },
   { keys: "N", action: "Add a command" },
   { keys: "↑ ↓", action: "Move through the list" },

@@ -80,4 +80,31 @@ describe("CommandList", () => {
     await user.keyboard("{ArrowUp}");
     expect(second).toHaveFocus();
   });
+
+  it.each(["compact", "cards"] as const)(
+    "supports explicit selection in %s view without opening entries",
+    async (viewMode) => {
+      const user = userEvent.setup();
+      const onToggleSelection = vi.fn();
+      const onOpenEntry = vi.fn();
+      const { container } = setup({
+        viewMode,
+        selecting: true,
+        selectedIds: new Set([1]),
+        onToggleSelection,
+        onOpenEntry,
+      });
+
+      expect(screen.getByRole("checkbox", { name: "Select Update Arch packages" })).toBeChecked();
+      expect(container.querySelectorAll(".is-selecting")).toHaveLength(2);
+      expect(container.querySelectorAll(".is-selected")).toHaveLength(1);
+      expect(screen.queryByRole("button", { name: "Copy Update Arch packages" })).not.toBeInTheDocument();
+
+      await user.click(
+        screen.getByRole("button", { name: "Toggle selection for Find a listening process" }),
+      );
+      expect(onToggleSelection).toHaveBeenCalledWith(2);
+      expect(onOpenEntry).not.toHaveBeenCalled();
+    },
+  );
 });

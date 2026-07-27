@@ -37,8 +37,13 @@ export interface SidebarProps {
   onOpenShortcuts: () => void;
   onOpenSettings: () => void;
   onManageCollections: () => void;
+  onViewAllCollections?: () => void;
+  onViewAllTags?: () => void;
   onDismiss: () => void;
 }
+
+const COLLECTION_LIMIT = 6;
+const TAG_LIMIT = 18;
 
 const NAV: { scope: Scope; label: string; icon: typeof Library; countKey: keyof LibraryStats }[] = [
   { scope: { type: "all" }, label: "All commands", icon: Library, countKey: "total" },
@@ -64,9 +69,23 @@ export function Sidebar({
   onOpenShortcuts,
   onOpenSettings,
   onManageCollections,
+  onViewAllCollections,
+  onViewAllTags,
   onDismiss,
 }: SidebarProps) {
   const isActive = (candidate: Scope) => view === "library" && scopesEqual(candidate, scope);
+  const activeCollectionId = scope.type === "collection" ? scope.id : null;
+  const activeTagName = scope.type === "tag" ? scope.name : null;
+  const visibleCollections = keepActiveVisible(
+    collections,
+    COLLECTION_LIMIT,
+    (collection) => collection.id === activeCollectionId,
+  );
+  const visibleTags = keepActiveVisible(
+    tags,
+    TAG_LIMIT,
+    (tag) => tag.name === activeTagName,
+  );
 
   return (
     <nav className="sidebar" aria-label="Library sections">
@@ -108,7 +127,17 @@ export function Sidebar({
         <div className="sidebar__section-header">
           <h2 id="sidebar-collections">Collections</h2>
           <div className="sidebar__section-actions" aria-label="Collection actions">
-
+            {collections.length > COLLECTION_LIMIT && onViewAllCollections && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="sidebar__view-all"
+                aria-label="View all collections"
+                onClick={onViewAllCollections}
+              >
+                View all
+              </Button>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -126,7 +155,7 @@ export function Sidebar({
           <p className="sidebar__hint">Create a collection to keep related commands together.</p>
         ) : (
           <ul className="sidebar__nav">
-            {collections.map((collection) => {
+            {visibleCollections.map((collection) => {
               const target: Scope = { type: "collection", id: collection.id };
               return (
                 <li key={collection.id}>
@@ -150,9 +179,20 @@ export function Sidebar({
         <section className="sidebar__section" aria-labelledby="sidebar-tags">
           <div className="sidebar__section-header">
             <h2 id="sidebar-tags">Tags</h2>
+            {tags.length > TAG_LIMIT && onViewAllTags && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="sidebar__view-all"
+                aria-label="View all tags"
+                onClick={onViewAllTags}
+              >
+                View all
+              </Button>
+            )}
           </div>
           <div className="tag-cloud">
-            {tags.slice(0, 18).map((tag) => {
+            {visibleTags.map((tag) => {
               const target: Scope = { type: "tag", name: tag.name };
               const active = isActive(target);
               return (
@@ -236,4 +276,18 @@ export function Sidebar({
       </div>
     </nav>
   );
+}
+
+function keepActiveVisible<T>(
+  items: T[],
+  limit: number,
+  isActive: (item: T) => boolean,
+): T[] {
+  if (items.length <= limit) return items;
+
+  const visible = items.slice(0, limit);
+  const active = items.find(isActive);
+  if (!active || visible.includes(active)) return visible;
+
+  return [...visible.slice(0, limit - 1), active];
 }

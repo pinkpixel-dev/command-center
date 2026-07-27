@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AssistantDock } from "./components/assistant/AssistantDock";
 import type { AssistantMode } from "./components/assistant/AssistantPanel";
+import { BulkActions } from "./components/BulkActions";
 import { CollectionActions } from "./components/CollectionActions";
 import { CollectionManager } from "./components/CollectionManager";
 import type { CollectionManagerIntent } from "./components/CollectionManager";
@@ -13,6 +14,7 @@ import { CommandForm } from "./components/CommandForm";
 import { CommandList } from "./components/CommandList";
 import { ConfirmDialog } from "./components/ConfirmDialog";
 import { HelpGuide } from "./components/HelpGuide";
+import { OrganizationViews } from "./components/OrganizationViews";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { ShortcutsHelp } from "./components/ShortcutsHelp";
 import { Sidebar } from "./components/Sidebar";
@@ -20,17 +22,18 @@ import { TopBar } from "./components/TopBar";
 import { Button } from "./components/ui/Button";
 import { useToast } from "./components/ui/Toast";
 import { useAiStatus } from "./hooks/useAiStatus";
+import { useAppHotkeys } from "./hooks/useAppHotkeys";
+import { useBulkSelection } from "./hooks/useBulkSelection";
 import { useCommandActions } from "./hooks/useCommandActions";
 import { useCommandEditor } from "./hooks/useCommandEditor";
 import { useDebounced } from "./hooks/useDebounced";
-import { useHotkeys } from "./hooks/useHotkeys";
 import { useLibrary } from "./hooks/useLibrary";
+import { useLibraryFiles } from "./hooks/useLibraryFiles";
 import { useSettings, useTheme } from "./hooks/useSettings";
 import { proposalToInput } from "./lib/assistant";
 import type { AssistantContext } from "./lib/assistant";
 import { scopeTitle } from "./lib/format";
 import { api, toAppError } from "./lib/ipc";
-import { backupLibraryDatabase, exportLibraryMarkdown } from "./lib/library-files";
 import type {
   AppView,
   Collection,
@@ -61,12 +64,10 @@ export default function App() {
   const [pendingDelete, setPendingDelete] = useState<CommandEntry | null>(null);
   const [pendingCollectionDelete, setPendingCollectionDelete] = useState<Collection | null>(null);
   const [deletingCollection, setDeletingCollection] = useState(false);
-
   const searchRef = useRef<HTMLInputElement>(null);
   const { notify } = useToast();
   const { settings, save: saveSettings } = useSettings();
   useTheme(settings.theme);
-
   // Typing should not fire a query per keystroke.
   const debouncedSearch = useDebounced(search, 160);
 
@@ -79,18 +80,18 @@ export default function App() {
     }),
     [debouncedSearch, scope, sort, kind],
   );
-
   const { entries, stats, tags, collections, loading, error, refresh } = useLibrary(filter);
   const actions = useCommandActions(refresh);
   const editor = useCommandEditor(actions.save);
   const ai = useAiStatus(settings.aiEnabled);
-
+  const files = useLibraryFiles();
+  const selectionKey = `${view}:${JSON.stringify(scope)}:${debouncedSearch}:${sort}:${kind}`;
+  const bulk = useBulkSelection(entries, selectionKey);
   // Settings is where a key is added or removed, so the AI-backed entry points
   // are re-checked as soon as the user leaves that screen.
   useEffect(() => {
     if (view !== "settings") ai.refresh();
   }, [ai.refresh, view]);
-
   // Turning AI off while Import or the assistant is open must not leave either
   // on screen.
   useEffect(() => {
@@ -100,7 +101,6 @@ export default function App() {
   useEffect(() => {
     if (!ai.ready) setAssistantOpen(false);
   }, [ai.ready]);
-
   const openCreate = useCallback(() => {
     editor.openCreate({
       collectionIds: scope.type === "collection" ? [scope.id] : [],
@@ -197,32 +197,19 @@ export default function App() {
     }
   };
 
-  // Search and "add" only make sense on the library screen; the rest are global.
-  const libraryHotkeys = view === "library"
-    ? [
-        { combo: "/", handler: () => searchRef.current?.focus() },
-        { combo: "n", handler: openCreate },
-      ]
-    : [];
-
-  useHotkeys([
-    ...libraryHotkeys,
-    { combo: "mod+k", allowWhileTyping: true, handler: openPalette },
-    // No `allowWhileTyping` here: `?` is a character someone types into the
-    // search box, the entry form, or the assistant composer.
-    { combo: "shift+?", handler: openShortcuts },
-    {
-      combo: "escape",
-      allowWhileTyping: true,
-      handler: () => {
-        if (document.activeElement === searchRef.current && search) {
-          setSearch("");
-          return;
-        }
-        setNavOpen(false);
-      },
-    },
-  ]);
+  useAppHotkeys({
+    view,
+    aiReady: ai.ready,
+    search,
+    searchRef,
+    onCreate: openCreate,
+    onOpenPalette: openPalette,
+    onToggleAssistant: () =>
+      assistantOpen ? setAssistantOpen(false) : openAssistant(null),
+    onOpenShortcuts: openShortcuts,
+    onClearSearch: () => setSearch(""),
+    onDismissNavigation: () => setNavOpen(false),
+  });
 
   const activeCollection = scope.type === "collection"
     ? collections.find((collection) => collection.id === scope.id) ?? null
@@ -242,31 +229,13 @@ export default function App() {
     window.setTimeout(() => searchRef.current?.focus(), 0);
   };
 
-  const exportMarkdown = async () => {
-    try {
-      const destination = await exportLibraryMarkdown();
-      if (destination) notify("Markdown export saved", "success");
-    } catch (caught) {
-      notify(toAppError(caught).message, "error");
-    }
-  };
-
-  const backupLibrary = async () => {
-    try {
-      const destination = await backupLibraryDatabase();
-      if (destination) notify("Library backup saved", "success");
-    } catch (caught) {
-      notify(toAppError(caught).message, "error");
-    }
-  };
-
   const paletteActions = createPaletteActions({
     onAdd: openCreate,
     onSearch: focusSearch,
     onScopeChange: changeScope,
     onManageCollections: () => openCollectionManager({ type: "manage" }),
-    onExport: () => void exportMarkdown(),
-    onBackup: () => void backupLibrary(),
+    onExport: () => void files.exportLibrary(),
+    onBackup: () => void files.backupLibrary(),
     onHelp: openHelp,
     onShortcuts: openShortcuts,
     onSettings: () => openView("settings"),
@@ -305,6 +274,8 @@ export default function App() {
           onOpenShortcuts={openShortcuts}
           onOpenSettings={() => openView("settings")}
           onManageCollections={() => openCollectionManager({ type: "manage" })}
+          onViewAllCollections={() => openView("collections")}
+          onViewAllTags={() => openView("tags")}
           onDismiss={() => setNavOpen(false)}
         />
       </div>
@@ -360,6 +331,17 @@ export default function App() {
           </>
         )}
 
+        <OrganizationViews
+          view={view}
+          collections={collections}
+          tags={tags}
+          scope={scope}
+          onOpenMenu={() => setNavOpen(true)}
+          onOpenLibrary={() => setView("library")}
+          onManageCollections={() => openCollectionManager({ type: "manage" })}
+          onScopeChange={changeScope}
+        />
+
         {view === "library" && (
           <>
             <TopBar
@@ -374,18 +356,36 @@ export default function App() {
               onKindChange={setKind}
               onAdd={openCreate}
               onOpenMenu={() => setNavOpen(true)}
+              showAdd={!bulk.selecting}
               contextActions={
-                activeCollection ? (
-                  <CollectionActions
-                    collectionName={activeCollection.name}
-                    onRename={() => openCollectionManager({
-                      type: "rename",
-                      collectionId: activeCollection.id,
-                    })}
-                    onDelete={() => requestCollectionDelete(activeCollection)}
-                    onManageAll={() => openCollectionManager({ type: "manage" })}
+                <>
+                  {activeCollection && !bulk.selecting && (
+                    <CollectionActions
+                      collectionName={activeCollection.name}
+                      onRename={() => openCollectionManager({
+                        type: "rename",
+                        collectionId: activeCollection.id,
+                      })}
+                      onDelete={() => requestCollectionDelete(activeCollection)}
+                      onExport={() => void files.exportCollection(activeCollection)}
+                      onManageAll={() => openCollectionManager({ type: "manage" })}
+                    />
+                  )}
+                  <BulkActions
+                    collections={collections}
+                    selecting={bulk.selecting}
+                    selectedIds={bulk.selectedIds}
+                    visibleCount={entries.length}
+                    allVisibleSelected={bulk.allVisibleSelected}
+                    onStart={bulk.start}
+                    onToggleAll={bulk.toggleAllVisible}
+                    onCancel={bulk.cancel}
+                    onComplete={async () => {
+                      await refresh();
+                      bulk.cancel();
+                    }}
                   />
-                ) : undefined
+                </>
               }
             />
 
@@ -398,6 +398,9 @@ export default function App() {
                 viewMode={settings.commandViewMode}
                 aiReady={ai.ready}
                 openEntryId={openEntryId}
+                selecting={bulk.selecting}
+                selectedIds={bulk.selectedIds}
+                onToggleSelection={bulk.toggle}
                 onOpenEntry={setOpenEntryId}
                 onCopy={(entry, text) => void actions.copy(entry, text)}
                 onEdit={editor.openEdit}

@@ -1,0 +1,66 @@
+.bulk-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-inset);
+}
+
+.bulk-actions__count {
+  min-width: 5.5rem;
+  padding-inline: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.bulk-actions__delete {
+  color: var(--text-faint);
+}
+
+.bulk-actions__delete:hover:not(:disabled) {
+  color: var(--danger);
+}
+
+.card.is-selecting {
+  cursor: pointer;
+}
+
+.card.is-selected {
+  border-color: var(--accent-border);
+  background: var(--accent-quiet);
+}
+
+.card__selection {
+  display: inline-flex;
+  align-items: center;
+  min-width: 24px;
+  min-height: 24px;
+}
+
+.card__selection input {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+@media (max-width: 620px) {
+  .bulk-actions__count {
+    min-width: 0;
+  }
+
+  .bulk-actions__count-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+}

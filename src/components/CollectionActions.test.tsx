@@ -7,6 +7,7 @@ import { CollectionActions } from "./CollectionActions";
 function renderActions(callbacks?: {
   onRename?: () => void;
   onDelete?: () => void;
+  onExport?: () => void;
   onManageAll?: () => void;
 }) {
   return render(
@@ -15,6 +16,7 @@ function renderActions(callbacks?: {
         collectionName="Docker"
         onRename={callbacks?.onRename ?? vi.fn()}
         onDelete={callbacks?.onDelete ?? vi.fn()}
+        onExport={callbacks?.onExport ?? vi.fn()}
         onManageAll={callbacks?.onManageAll ?? vi.fn()}
       />
       <button type="button">Outside action</button>
@@ -35,6 +37,7 @@ describe("CollectionActions", () => {
     expect(trigger).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("button", { name: "Rename collection" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Delete collection" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Export collection" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Manage all collections" })).toBeInTheDocument();
     expect(screen.queryByRole("menu")).not.toBeInTheDocument();
     expect(screen.queryByRole("menuitem")).not.toBeInTheDocument();
@@ -66,12 +69,14 @@ describe("CollectionActions", () => {
   it.each([
     ["Rename collection", "onRename"],
     ["Delete collection", "onDelete"],
+    ["Export collection", "onExport"],
     ["Manage all collections", "onManageAll"],
   ] as const)("runs %s and closes the disclosure", async (label, callbackName) => {
     const user = userEvent.setup();
     const callbacks = {
       onRename: vi.fn(),
       onDelete: vi.fn(),
+      onExport: vi.fn(),
       onManageAll: vi.fn(),
     };
     renderActions(callbacks);

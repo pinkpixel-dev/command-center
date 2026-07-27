@@ -20,6 +20,7 @@ export interface TopBarProps {
   onAdd: () => void;
   onOpenMenu: () => void;
   contextActions?: ReactNode;
+  showAdd?: boolean;
 }
 
 const SORTS: { value: SortOrder; label: string }[] = [
@@ -43,6 +44,7 @@ export function TopBar({
   onAdd,
   onOpenMenu,
   contextActions,
+  showAdd = true,
 }: TopBarProps) {
   return (
     <header className="topbar">
@@ -65,10 +67,12 @@ export function TopBar({
 
         <div className="topbar__actions">
           {contextActions}
-          <Button variant="primary" size="sm" onClick={onAdd}>
-            <Plus size={15} aria-hidden="true" />
-            Add command
-          </Button>
+          {showAdd && (
+            <Button variant="primary" size="sm" onClick={onAdd}>
+              <Plus size={15} aria-hidden="true" />
+              <span className="topbar__action-label">Add command</span>
+            </Button>
+          )}
         </div>
       </div>
 

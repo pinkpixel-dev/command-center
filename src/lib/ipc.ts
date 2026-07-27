@@ -69,6 +69,10 @@ export const api = {
   updateCommand: (id: number, input: CommandInput) =>
     call<CommandEntry>("update_command", { id, input }),
   deleteCommand: (id: number) => call<void>("delete_command", { id }),
+  deleteCommands: (commandIds: number[]) =>
+    call<void>("delete_commands", { commandIds }),
+  addCommandsToCollection: (commandIds: number[], collectionId: number) =>
+    call<void>("add_commands_to_collection", { commandIds, collectionId }),
   toggleFavorite: (id: number) => call<boolean>("toggle_favorite", { id }),
   recordCopy: (id: number) => call<CommandEntry>("record_copy", { id }),
   findDuplicate: (content: string) => call<CommandEntry | null>("find_duplicate", { content }),
@@ -120,5 +124,7 @@ export const api = {
   libraryLocation: () => call<string>("library_location"),
   exportLibraryMarkdown: (destination: string) =>
     call<string>("export_library_markdown", { destination }),
+  exportCollectionMarkdown: (collectionId: number, destination: string) =>
+    call<string>("export_collection_markdown", { collectionId, destination }),
   backupLibrary: (destination: string) => call<string>("backup_library", { destination }),
 };

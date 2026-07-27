@@ -8,6 +8,9 @@ import { RiskBadge } from "./ui/RiskBadge";
 export interface CommandCardProps {
   entry: CommandEntry;
   viewMode: CommandViewMode;
+  selecting?: boolean;
+  selected?: boolean;
+  onToggleSelection?: () => void;
   onOpenDetails: () => void;
   onCopy: (text: string) => void;
   onEdit: () => void;
@@ -18,6 +21,9 @@ export interface CommandCardProps {
 export function CommandCard({
   entry,
   viewMode,
+  selecting = false,
+  selected = false,
+  onToggleSelection,
   onOpenDetails,
   onCopy,
   onEdit,
@@ -25,18 +31,36 @@ export function CommandCard({
   onToggleFavorite,
 }: CommandCardProps) {
   const lines = lineCount(entry.content);
+  const openOrSelect = selecting ? onToggleSelection : onOpenDetails;
 
   return (
-    <article className={`card card--${viewMode}`} data-risk={entry.riskLevel}>
+    <article
+      className={`card card--${viewMode}${selecting ? " is-selecting" : ""}${
+        selected ? " is-selected" : ""
+      }`}
+      data-risk={entry.riskLevel}
+    >
       <div className="card__head">
+        {selecting && (
+          <label className="card__selection">
+            <input
+              type="checkbox"
+              checked={selected}
+              onChange={onToggleSelection}
+              aria-label={`Select ${entry.title}`}
+            />
+          </label>
+        )}
         <button
           type="button"
           className="card__toggle"
-          onClick={onOpenDetails}
-          aria-haspopup="dialog"
+          onClick={openOrSelect}
+          aria-haspopup={selecting ? undefined : "dialog"}
+          aria-pressed={selecting ? selected : undefined}
+          aria-label={selecting ? `Toggle selection for ${entry.title}` : undefined}
           data-card-focus="true"
         >
-          <Maximize2 size={14} aria-hidden="true" className="card__open-icon" />
+          {!selecting && <Maximize2 size={14} aria-hidden="true" className="card__open-icon" />}
           <span className="card__title">{entry.title}</span>
         </button>
       </div>
@@ -50,27 +74,34 @@ export function CommandCard({
       <button
         type="button"
         className="code card__preview"
-        onClick={onOpenDetails}
-        aria-label={`View full content for ${entry.title}`}
-        aria-haspopup="dialog"
-        title="View full entry"
+        onClick={openOrSelect}
+        aria-label={
+          selecting
+            ? `Toggle selection for ${entry.title} from its preview`
+            : `View full content for ${entry.title}`
+        }
+        aria-haspopup={selecting ? undefined : "dialog"}
+        aria-pressed={selecting ? selected : undefined}
+        title={selecting ? "Toggle selection" : "View full entry"}
       >
         <code>{entry.content}</code>
       </button>
 
       <div className="card__meta">
-        <Button
-          variant="ghost"
-          size="sm"
-          iconOnly
-          className={entry.favorite ? "is-favorite" : ""}
-          aria-pressed={entry.favorite}
-          aria-label={entry.favorite ? "Remove from favorites" : "Add to favorites"}
-          title={entry.favorite ? "Remove from favorites" : "Add to favorites"}
-          onClick={onToggleFavorite}
-        >
-          <Star size={15} aria-hidden="true" fill={entry.favorite ? "currentColor" : "none"} />
-        </Button>
+        {!selecting && (
+          <Button
+            variant="ghost"
+            size="sm"
+            iconOnly
+            className={entry.favorite ? "is-favorite" : ""}
+            aria-pressed={entry.favorite}
+            aria-label={entry.favorite ? "Remove from favorites" : "Add to favorites"}
+            title={entry.favorite ? "Remove from favorites" : "Add to favorites"}
+            onClick={onToggleFavorite}
+          >
+            <Star size={15} aria-hidden="true" fill={entry.favorite ? "currentColor" : "none"} />
+          </Button>
+        )}
         <span className="meta-pill">{kindLabel(entry.kind)}</span>
         {entry.shell && <span className="meta-pill">{entry.shell}</span>}
         {lines > 1 && <span className="meta-pill">{lines} lines</span>}
@@ -86,7 +117,7 @@ export function CommandCard({
         ))}
       </div>
 
-      <div className="card__actions">
+      {!selecting && <div className="card__actions">
         <Button
           variant="secondary"
           size="sm"
@@ -118,7 +149,7 @@ export function CommandCard({
         >
           <Trash2 size={14} aria-hidden="true" />
         </Button>
-      </div>
+      </div>}
 
     </article>
   );

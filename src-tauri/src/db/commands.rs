@@ -1,14 +1,14 @@
 //! Reading and writing entries. Writes go through a transaction so an entry,
 //! its tags, its collections and its search row can never drift apart.
 
-use std::collections::HashMap;
+use std::collections::{BTreeSet, HashMap};
 
 use rusqlite::{params, params_from_iter, Connection, Row};
 
 use crate::db::query::{self, ListQuery};
 use crate::db::{collections, now, search, tags};
 use crate::error::{AppError, AppResult};
-use crate::models::{Command, CommandInput, CommandKind, CollectionRef, LibraryStats, RiskLevel};
+use crate::models::{CollectionRef, Command, CommandInput, CommandKind, LibraryStats, RiskLevel};
 use crate::normalize::{content_hash, extract_variables};
 use crate::risk;
 
@@ -33,6 +33,26 @@ pub fn list_all(conn: &Connection) -> AppResult<Vec<Command>> {
     let mut statement = conn.prepare(&sql)?;
     let rows = statement
         .query_map([], map_row)?
+        .collect::<Result<Vec<PartialCommand>, _>>()?;
+
+    hydrate(conn, rows)
+}
+
+/// Every entry in one collection without the interactive library's result
+/// limit, used for a complete collection export.
+pub fn list_for_collection(conn: &Connection, collection_id: i64) -> AppResult<Vec<Command>> {
+    let sql = format!(
+        "SELECT {} FROM commands c
+         WHERE EXISTS (
+             SELECT 1 FROM command_collections cc
+             WHERE cc.command_id = c.id AND cc.collection_id = ?1
+         )
+         ORDER BY c.title COLLATE NOCASE ASC, c.id ASC",
+        query::COLUMNS
+    );
+    let mut statement = conn.prepare(&sql)?;
+    let rows = statement
+        .query_map(params![collection_id], map_row)?
         .collect::<Result<Vec<PartialCommand>, _>>()?;
 
     hydrate(conn, rows)
@@ -153,6 +173,45 @@ pub fn delete(conn: &mut Connection, id: i64) -> AppResult<()> {
     tags::prune_orphans(&tx)?;
     tx.commit()?;
     Ok(())
+}
+
+/// Deletes an explicitly selected set as one transaction. The complete
+/// selection is checked first so one stale id cannot leave a partial delete.
+pub fn delete_many(conn: &mut Connection, command_ids: &[i64]) -> AppResult<usize> {
+    let tx = conn.transaction()?;
+    let command_ids = validated_selection(&tx, command_ids)?;
+
+    for command_id in &command_ids {
+        tx.execute("DELETE FROM commands WHERE id = ?1", params![command_id])?;
+        search::remove(&tx, *command_id)?;
+    }
+    tags::prune_orphans(&tx)?;
+    tx.commit()?;
+
+    Ok(command_ids.len())
+}
+
+/// Deduplicates a selected id list and proves every row exists before a bulk
+/// write begins. Kept here so collection membership and deletion agree on what
+/// an explicit selection means.
+pub(crate) fn validated_selection(conn: &Connection, command_ids: &[i64]) -> AppResult<Vec<i64>> {
+    let command_ids = command_ids.iter().copied().collect::<BTreeSet<_>>();
+    if command_ids.is_empty() {
+        return Err(AppError::invalid("Select at least one command"));
+    }
+
+    for command_id in &command_ids {
+        let exists: bool = conn.query_row(
+            "SELECT EXISTS (SELECT 1 FROM commands WHERE id = ?1)",
+            params![command_id],
+            |row| row.get(0),
+        )?;
+        if !exists {
+            return Err(AppError::not_found(format!("Command {command_id}")));
+        }
+    }
+
+    Ok(command_ids.into_iter().collect())
 }
 
 /// Flips the favorite flag and reports the new state.
@@ -319,10 +378,13 @@ fn hydrate(conn: &Connection, rows: Vec<PartialCommand>) -> AppResult<Vec<Comman
     ))?;
     let mut cursor = statement.query(params_from_iter(ids.iter()))?;
     while let Some(row) = cursor.next()? {
-        collection_map.entry(row.get(0)?).or_default().push(CollectionRef {
-            id: row.get(1)?,
-            name: row.get(2)?,
-        });
+        collection_map
+            .entry(row.get(0)?)
+            .or_default()
+            .push(CollectionRef {
+                id: row.get(1)?,
+                name: row.get(2)?,
+            });
     }
 
     rows.into_iter()

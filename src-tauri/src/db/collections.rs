@@ -1,6 +1,6 @@
 use rusqlite::{params, Connection};
 
-use crate::db::{now, search};
+use crate::db::{commands, now, search};
 use crate::error::{AppError, AppResult};
 use crate::models::{Collection, CollectionInput, CollectionRef};
 
@@ -29,6 +29,32 @@ pub fn list(conn: &Connection) -> AppResult<Vec<Collection>> {
         .collect::<Result<Vec<Collection>, _>>()?;
 
     Ok(collections)
+}
+
+pub fn get(conn: &Connection, id: i64) -> AppResult<Collection> {
+    conn.query_row(
+        "SELECT c.id, c.name, c.description, COUNT(cc.command_id) AS command_count,
+                c.created_at, c.updated_at
+         FROM collections c
+         LEFT JOIN command_collections cc ON cc.collection_id = c.id
+         WHERE c.id = ?1
+         GROUP BY c.id, c.name, c.description, c.created_at, c.updated_at",
+        params![id],
+        |row| {
+            Ok(Collection {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                description: row.get(2)?,
+                command_count: row.get(3)?,
+                created_at: row.get(4)?,
+                updated_at: row.get(5)?,
+            })
+        },
+    )
+    .map_err(|error| match error {
+        rusqlite::Error::QueryReturnedNoRows => AppError::not_found("That collection"),
+        other => other.into(),
+    })
 }
 
 pub fn create(conn: &Connection, input: CollectionInput) -> AppResult<i64> {
@@ -130,7 +156,11 @@ pub fn for_command(conn: &Connection, command_id: i64) -> AppResult<Vec<Collecti
 
 /// Replaces an entry's collection membership. Unknown ids are ignored rather
 /// than failing the whole save.
-pub fn set_for_command(conn: &Connection, command_id: i64, collection_ids: &[i64]) -> AppResult<()> {
+pub fn set_for_command(
+    conn: &Connection,
+    command_id: i64,
+    collection_ids: &[i64],
+) -> AppResult<()> {
     conn.execute(
         "DELETE FROM command_collections WHERE command_id = ?1",
         params![command_id],
@@ -145,6 +175,31 @@ pub fn set_for_command(conn: &Connection, command_id: i64, collection_ids: &[i64
     }
 
     Ok(())
+}
+
+/// Adds one collection to every explicitly selected command while preserving
+/// all existing memberships. The complete selection is validated before the
+/// first insert, and search rows move in the same transaction.
+pub fn add_commands_to_collection(
+    conn: &mut Connection,
+    command_ids: &[i64],
+    collection_id: i64,
+) -> AppResult<usize> {
+    let tx = conn.transaction()?;
+    get(&tx, collection_id)?;
+    let command_ids = commands::validated_selection(&tx, command_ids)?;
+
+    for command_id in &command_ids {
+        tx.execute(
+            "INSERT OR IGNORE INTO command_collections (command_id, collection_id)
+             VALUES (?1, ?2)",
+            params![command_id, collection_id],
+        )?;
+        search::reindex(&tx, *command_id)?;
+    }
+    tx.commit()?;
+
+    Ok(command_ids.len())
 }
 
 fn member_ids(conn: &Connection, collection_id: i64) -> AppResult<Vec<i64>> {

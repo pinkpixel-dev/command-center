@@ -3,11 +3,11 @@
 use tauri::{AppHandle, Emitter, State};
 
 use crate::db::query::ListQuery;
-use crate::db::{collections as collections_db, commands as commands_db, tags as tags_db, Database};
-use crate::error::AppResult;
-use crate::models::{
-    Collection, CollectionInput, Command, CommandInput, LibraryStats, Tag,
+use crate::db::{
+    collections as collections_db, commands as commands_db, tags as tags_db, Database,
 };
+use crate::error::AppResult;
+use crate::models::{Collection, CollectionInput, Command, CommandInput, LibraryStats, Tag};
 
 /// Event the frontend listens to so library changes refresh the current view.
 pub const LIBRARY_CHANGED: &str = "library-changed";
@@ -58,6 +58,17 @@ pub fn update_command(
 #[tauri::command]
 pub fn delete_command(app: AppHandle, db: State<'_, Database>, id: i64) -> AppResult<()> {
     db.with_mut(|conn| commands_db::delete(conn, id))?;
+    announce(&app);
+    Ok(())
+}
+
+#[tauri::command]
+pub fn delete_commands(
+    app: AppHandle,
+    db: State<'_, Database>,
+    command_ids: Vec<i64>,
+) -> AppResult<()> {
+    db.with_mut(|conn| commands_db::delete_many(conn, &command_ids))?;
     announce(&app);
     Ok(())
 }
@@ -139,4 +150,18 @@ pub fn delete_collection(
     })?;
     announce(&app);
     Ok(list)
+}
+
+#[tauri::command]
+pub fn add_commands_to_collection(
+    app: AppHandle,
+    db: State<'_, Database>,
+    command_ids: Vec<i64>,
+    collection_id: i64,
+) -> AppResult<()> {
+    db.with_mut(|conn| {
+        collections_db::add_commands_to_collection(conn, &command_ids, collection_id)
+    })?;
+    announce(&app);
+    Ok(())
 }

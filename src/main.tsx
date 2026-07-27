@@ -17,6 +17,7 @@ import "./styles/import.css";
 import "./styles/explanation.css";
 import "./styles/assistant.css";
 import "./styles/diagnosis.css";
+import "./styles/bulk.css";
 import "./styles/polish.css";
 
 import App from "./App";

@@ -17,6 +17,9 @@ export interface CommandListProps {
   error: string | null;
   searching: boolean;
   openEntryId: number | null;
+  selecting?: boolean;
+  selectedIds?: ReadonlySet<number>;
+  onToggleSelection?: (id: number) => void;
   onOpenEntry: (id: number | null) => void;
   onCopy: (entry: CommandEntry, text: string) => void;
   onEdit: (entry: CommandEntry) => void;
@@ -38,6 +41,9 @@ export function CommandList({
   error,
   searching,
   openEntryId,
+  selecting = false,
+  selectedIds = new Set<number>(),
+  onToggleSelection,
   onOpenEntry,
   onCopy,
   onEdit,
@@ -140,6 +146,9 @@ export function CommandList({
             <CommandCard
               entry={entry}
               viewMode={viewMode}
+              selecting={selecting}
+              selected={selectedIds.has(entry.id)}
+              onToggleSelection={() => onToggleSelection?.(entry.id)}
               onOpenDetails={() => onOpenEntry(entry.id)}
               onCopy={(text) => onCopy(entry, text)}
               onEdit={() => onEdit(entry)}
@@ -150,7 +159,7 @@ export function CommandList({
         ))}
       </ul>
 
-      {openEntry && (
+      {openEntry && !selecting && (
         <CommandDetailsDialog
           entry={openEntry}
           open

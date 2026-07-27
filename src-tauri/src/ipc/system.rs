@@ -71,6 +71,17 @@ pub fn export_library_markdown(db: State<'_, Database>, destination: String) -> 
 }
 
 #[tauri::command]
+pub fn export_collection_markdown(
+    db: State<'_, Database>,
+    collection_id: i64,
+    destination: String,
+) -> AppResult<String> {
+    let destination = PathBuf::from(destination);
+    crate::export::export_collection_markdown(&db, collection_id, &destination)?;
+    Ok(destination.to_string_lossy().to_string())
+}
+
+#[tauri::command]
 pub fn backup_library(
     app: AppHandle,
     db: State<'_, Database>,

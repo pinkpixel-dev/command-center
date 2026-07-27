@@ -109,7 +109,7 @@ export interface ListQuery {
 }
 
 /** Which top-level screen the main window is showing. */
-export type AppView = "library" | "import" | "settings";
+export type AppView = "library" | "collections" | "tags" | "import" | "settings";
 
 export type ThemePreference = "dark" | "high-contrast" | "light" | "system";
 
