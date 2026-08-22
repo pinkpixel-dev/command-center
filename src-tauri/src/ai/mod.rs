@@ -10,6 +10,7 @@ pub mod explanation;
 pub mod import;
 pub mod inflight;
 pub mod prompts;
+pub mod providers;
 pub mod proposal;
 pub mod redaction;
 mod transport;

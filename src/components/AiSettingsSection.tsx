@@ -1,9 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { api, toAppError } from "../lib/ipc";
-import type { AiStatus, AppSettings } from "../lib/types";
+import type { AiProvider, AiStatus, AppSettings } from "../lib/types";
+import { CodexPanel } from "./CodexPanel";
 import { Button } from "./ui/Button";
 import { CheckboxField, SelectField, TextField } from "./ui/Field";
+
+const PROVIDER_OPTIONS: { value: AiProvider; label: string }[] = [
+  { value: "openaiApi", label: "OpenAI API key" },
+  { value: "chatgptCodex", label: "ChatGPT account (Codex)" },
+];
 
 const CUSTOM_MODEL_VALUE = "__custom__";
 
@@ -204,144 +210,164 @@ export function AiSettingsSection({ draft, saved, onPatch }: AiSettingsSectionPr
       {draft.aiEnabled && (
         <div className="ai-settings">
           <SelectField
-            label="OpenAI model"
-            value={selectedModel}
-            onChange={(event) => updateModel(event.target.value)}
-            options={modelOptions}
-            disabled={loadingStatus || !aiStatus}
+            label="AI provider"
+            value={draft.aiProvider}
+            onChange={(event) => {
+              // Each provider keeps its own model choice, so switching never
+              // overwrites the other one's selection.
+              onPatch({ aiProvider: event.target.value as AiProvider });
+              setNotice(null);
+            }}
+            options={PROVIDER_OPTIONS}
           />
 
-          {customSelected && (
-            <TextField
-              label="Custom model ID"
-              value={draft.aiModel ?? ""}
-              maxLength={256}
-              spellCheck={false}
-              autoCapitalize="none"
-              autoCorrect="off"
-              placeholder="gpt-5 or a fine-tuned model ID"
-              onChange={(event) => onPatch({ aiModel: event.target.value })}
-              error={customModelError}
-            />
+          {draft.aiProvider === "chatgptCodex" && (
+            <CodexPanel draft={draft} saved={saved} onPatch={onPatch} />
           )}
 
-          <div className="ai-settings__credential">
-            <div>
-              <span className="field__label">OpenAI API key</span>
-              <p className="ai-settings__key-state">
-                {loadingStatus
-                  ? "Checking the credential manager…"
-                  : !aiStatus?.credentialManagerAvailable
-                    ? "Secure storage not verified"
-                    : aiStatus.keyStored
-                      ? "Key stored securely"
-                      : "No key stored"}
-              </p>
-            </div>
+          {draft.aiProvider === "openaiApi" && (
+            <>
+              <SelectField
+                label="OpenAI model"
+                value={selectedModel}
+                onChange={(event) => updateModel(event.target.value)}
+                options={modelOptions}
+                disabled={loadingStatus || !aiStatus}
+              />
 
-            {!loadingStatus && (
-              <div className="settings__button-row">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => {
-                    setKeyFormOpen((open) => !open);
-                    setConfirmRemove(false);
-                    setNotice(null);
-                  }}
-                >
-                  {aiStatus?.keyStored ? "Replace key" : "Add key"}
-                </Button>
-                {aiStatus?.keyStored && (
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={() => {
-                      setConfirmRemove(true);
-                      setKeyFormOpen(false);
-                      setNotice(null);
-                    }}
-                  >
-                    Remove key
-                  </Button>
+              {customSelected && (
+                <TextField
+                  label="Custom model ID"
+                  value={draft.aiModel ?? ""}
+                  maxLength={256}
+                  spellCheck={false}
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  placeholder="gpt-5 or a fine-tuned model ID"
+                  onChange={(event) => onPatch({ aiModel: event.target.value })}
+                  error={customModelError}
+                />
+              )}
+
+              <div className="ai-settings__credential">
+                <div>
+                  <span className="field__label">OpenAI API key</span>
+                  <p className="ai-settings__key-state">
+                    {loadingStatus
+                      ? "Checking the credential manager…"
+                      : !aiStatus?.credentialManagerAvailable
+                        ? "Secure storage not verified"
+                        : aiStatus.keyStored
+                          ? "Key stored securely"
+                          : "No key stored"}
+                  </p>
+                </div>
+
+                {!loadingStatus && (
+                  <div className="settings__button-row">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => {
+                        setKeyFormOpen((open) => !open);
+                        setConfirmRemove(false);
+                        setNotice(null);
+                      }}
+                    >
+                      {aiStatus?.keyStored ? "Replace key" : "Add key"}
+                    </Button>
+                    {aiStatus?.keyStored && (
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => {
+                          setConfirmRemove(true);
+                          setKeyFormOpen(false);
+                          setNotice(null);
+                        }}
+                      >
+                        Remove key
+                      </Button>
+                    )}
+                  </div>
                 )}
               </div>
-            )}
-          </div>
 
 
 
-          {keyFormOpen && (
-            <div className="ai-settings__key-form">
-              <TextField
-                label={aiStatus?.keyStored ? "Replacement API key" : "OpenAI API key"}
-                type="password"
-                value={apiKey}
-                autoComplete="new-password"
-                spellCheck={false}
-                autoCapitalize="none"
-                autoCorrect="off"
-                placeholder="Paste the key once"
-                onChange={(event) => setApiKey(event.target.value)}
-              />
-              <div className="settings__button-row">
+              {keyFormOpen && (
+                <div className="ai-settings__key-form">
+                  <TextField
+                    label={aiStatus?.keyStored ? "Replacement API key" : "OpenAI API key"}
+                    type="password"
+                    value={apiKey}
+                    autoComplete="new-password"
+                    spellCheck={false}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    placeholder="Paste the key once"
+                    onChange={(event) => setApiKey(event.target.value)}
+                  />
+                  <div className="settings__button-row">
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      loading={keyAction === "save"}
+                      disabled={!apiKey.trim()}
+                      onClick={() => void saveKey()}
+                    >
+                      Store key
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setKeyFormOpen(false);
+                        setApiKey("");
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {confirmRemove && (
+                <div className="ai-settings__remove-confirm" role="group" aria-label="Remove API key">
+                  <p>Remove the stored key from the operating system credential manager?</p>
+                  <div className="settings__button-row">
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      loading={keyAction === "remove"}
+                      onClick={() => void removeKey()}
+                    >
+                      Remove stored key
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => setConfirmRemove(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="ai-settings__test">
                 <Button
-                  variant="primary"
-                  size="sm"
-                  loading={keyAction === "save"}
-                  disabled={!apiKey.trim()}
-                  onClick={() => void saveKey()}
+                  variant="secondary"
+                  onClick={() => void testConnection()}
+                  loading={testing}
+                  disabled={!readyToTest}
+                  title={
+                    readyToTest
+                      ? "Send a small structured request to OpenAI"
+                      : "Store a key and save the enabled AI settings before testing"
+                  }
                 >
-                  Store key
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setKeyFormOpen(false);
-                    setApiKey("");
-                  }}
-                >
-                  Cancel
+                  Test connection
                 </Button>
               </div>
-            </div>
+            </>
           )}
-
-          {confirmRemove && (
-            <div className="ai-settings__remove-confirm" role="group" aria-label="Remove API key">
-              <p>Remove the stored key from the operating system credential manager?</p>
-              <div className="settings__button-row">
-                <Button
-                  variant="danger"
-                  size="sm"
-                  loading={keyAction === "remove"}
-                  onClick={() => void removeKey()}
-                >
-                  Remove stored key
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => setConfirmRemove(false)}>
-                  Cancel
-                </Button>
-              </div>
-            </div>
-          )}
-
-          <div className="ai-settings__test">
-            <Button
-              variant="secondary"
-              onClick={() => void testConnection()}
-              loading={testing}
-              disabled={!readyToTest}
-              title={
-                readyToTest
-                  ? "Send a small structured request to OpenAI"
-                  : "Store a key and save the enabled AI settings before testing"
-              }
-            >
-              Test connection
-            </Button>
-          </div>
         </div>
       )}
 

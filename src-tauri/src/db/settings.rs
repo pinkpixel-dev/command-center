@@ -25,6 +25,14 @@ pub struct AppSettings {
     pub ai_enabled: bool,
     /// A curated or custom OpenAI model ID. None uses the Rust-owned default.
     pub ai_model: Option<String>,
+    /// Which provider the AI workflows use. Existing rows have no value here
+    /// and load as the API-key provider, so no saved key or model moves.
+    pub ai_provider: String,
+    /// The Codex model, chosen from the live list the app server reports.
+    /// Kept apart from `ai_model` because the catalogues are not the same.
+    pub codex_model: Option<String>,
+    /// An explicit Codex executable path. None means discovery decides.
+    pub codex_path: Option<String>,
 }
 
 impl Default for AppSettings {
@@ -37,6 +45,9 @@ impl Default for AppSettings {
             close_to_tray: false,
             ai_enabled: false,
             ai_model: None,
+            ai_provider: crate::ai::providers::AiProvider::default().as_str().into(),
+            codex_model: None,
+            codex_path: None,
         }
     }
 }
@@ -56,7 +67,19 @@ impl AppSettings {
             .ai_model
             .as_deref()
             .and_then(crate::ai::normalize_model_id);
+        self.codex_model = self
+            .codex_model
+            .as_deref()
+            .and_then(crate::ai::normalize_model_id);
+        self.ai_provider = crate::ai::providers::AiProvider::parse(&self.ai_provider)
+            .as_str()
+            .into();
+        self.codex_path = self.codex_path.as_deref().and_then(normalize_codex_path);
         self
+    }
+
+    pub fn provider(&self) -> crate::ai::providers::AiProvider {
+        crate::ai::providers::AiProvider::parse(&self.ai_provider)
     }
 
     pub fn effective_ai_model(&self) -> &str {
@@ -81,12 +104,45 @@ pub fn load(conn: &Connection) -> AppResult<AppSettings> {
         .sanitized())
 }
 
+/// A saved Codex path has to be absolute. A relative one would resolve against
+/// whatever directory the app happened to start in, which is not something the
+/// user chose.
+fn normalize_codex_path(value: &str) -> Option<String> {
+    const MAX_PATH_LENGTH: usize = 4096;
+
+    let trimmed = value.trim();
+    if trimmed.is_empty()
+        || trimmed.len() > MAX_PATH_LENGTH
+        || trimmed.chars().any(char::is_control)
+        || !std::path::Path::new(trimmed).is_absolute()
+    {
+        return None;
+    }
+    Some(trimmed.to_owned())
+}
+
 pub fn save(conn: &Connection, settings: AppSettings) -> AppResult<AppSettings> {
     if let Some(model) = settings.ai_model.as_deref() {
         let has_non_empty_value = !model.trim().is_empty();
         if has_non_empty_value && crate::ai::normalize_model_id(model).is_none() {
             return Err(crate::error::AppError::invalid(
                 "Enter a valid OpenAI model ID without spaces.",
+            ));
+        }
+    }
+    if let Some(model) = settings.codex_model.as_deref() {
+        let has_non_empty_value = !model.trim().is_empty();
+        if has_non_empty_value && crate::ai::normalize_model_id(model).is_none() {
+            return Err(crate::error::AppError::invalid(
+                "Choose a Codex model from the list.",
+            ));
+        }
+    }
+    if let Some(path) = settings.codex_path.as_deref() {
+        let has_non_empty_value = !path.trim().is_empty();
+        if has_non_empty_value && normalize_codex_path(path).is_none() {
+            return Err(crate::error::AppError::invalid(
+                "Enter the full path to the Codex program.",
             ));
         }
     }
@@ -132,6 +188,7 @@ mod tests {
             close_to_tray: true,
             ai_enabled: true,
             ai_model: Some("gpt-5.6-terra".into()),
+            ..AppSettings::default()
         };
 
         db.with(|conn| save(conn, settings.clone())).unwrap();
@@ -217,6 +274,131 @@ mod tests {
 
         let loaded = db.with(load).unwrap();
         assert_eq!(loaded.theme, "dark");
+    }
+
+    #[test]
+    fn an_existing_row_without_provider_fields_loads_as_the_api_key_provider() {
+        use crate::ai::providers::AiProvider;
+
+        let db = Database::open_in_memory().unwrap();
+        db.with(|conn| {
+            conn.execute(
+                "INSERT INTO settings (key, value) VALUES (?1, ?2)",
+                params![
+                    SETTINGS_KEY,
+                    r#"{"aiEnabled": true, "aiModel": "gpt-5.6-terra"}"#
+                ],
+            )?;
+            Ok(())
+        })
+        .unwrap();
+
+        let loaded = db.with(load).unwrap();
+
+        // The point of the migration: an existing key-and-model setup is
+        // untouched by the arrival of a second provider.
+        assert_eq!(loaded.provider(), AiProvider::OpenaiApi);
+        assert_eq!(loaded.ai_model.as_deref(), Some("gpt-5.6-terra"));
+        assert!(loaded.ai_enabled);
+        assert_eq!(loaded.codex_model, None);
+        assert_eq!(loaded.codex_path, None);
+    }
+
+    #[test]
+    fn the_two_provider_model_choices_are_stored_separately() {
+        use crate::ai::providers::AiProvider;
+
+        let db = Database::open_in_memory().unwrap();
+        let saved = db
+            .with(|conn| {
+                save(
+                    conn,
+                    AppSettings {
+                        ai_provider: AiProvider::ChatgptCodex.as_str().into(),
+                        ai_model: Some("gpt-5.6-terra".into()),
+                        codex_model: Some("gpt-5.6-luna".into()),
+                        ..AppSettings::default()
+                    },
+                )
+            })
+            .unwrap();
+
+        // Switching provider must never overwrite the other one's selection.
+        assert_eq!(saved.provider(), AiProvider::ChatgptCodex);
+        assert_eq!(saved.ai_model.as_deref(), Some("gpt-5.6-terra"));
+        assert_eq!(saved.codex_model.as_deref(), Some("gpt-5.6-luna"));
+    }
+
+    #[test]
+    fn an_unknown_saved_provider_is_repaired_to_the_default() {
+        use crate::ai::providers::AiProvider;
+
+        let db = Database::open_in_memory().unwrap();
+        let saved = db
+            .with(|conn| {
+                save(
+                    conn,
+                    AppSettings {
+                        ai_provider: "some-future-provider".into(),
+                        ..AppSettings::default()
+                    },
+                )
+            })
+            .unwrap();
+
+        assert_eq!(saved.provider(), AiProvider::OpenaiApi);
+    }
+
+    #[test]
+    fn a_codex_path_has_to_be_absolute() {
+        assert_eq!(normalize_codex_path("  "), None);
+        assert_eq!(normalize_codex_path("codex"), None);
+        assert_eq!(normalize_codex_path("./bin/codex"), None);
+        // A control character has no place in a path the app will execute.
+        assert_eq!(normalize_codex_path("/opt/codex\u{7f}/codex"), None);
+
+        #[cfg(unix)]
+        assert_eq!(
+            normalize_codex_path("  /opt/codex/bin/codex  ").as_deref(),
+            Some("/opt/codex/bin/codex"),
+        );
+        #[cfg(windows)]
+        assert_eq!(
+            normalize_codex_path(r"C:\Tools\codex.exe").as_deref(),
+            Some(r"C:\Tools\codex.exe"),
+        );
+    }
+
+    #[test]
+    fn a_relative_codex_path_is_rejected_on_save_rather_than_silently_dropped() {
+        let db = Database::open_in_memory().unwrap();
+        let rejected = db.with(|conn| {
+            save(
+                conn,
+                AppSettings {
+                    codex_path: Some("codex".into()),
+                    ..AppSettings::default()
+                },
+            )
+        });
+
+        assert!(rejected.is_err());
+    }
+
+    #[test]
+    fn an_invalid_codex_model_is_rejected_on_save() {
+        let db = Database::open_in_memory().unwrap();
+        let rejected = db.with(|conn| {
+            save(
+                conn,
+                AppSettings {
+                    codex_model: Some("gpt 5 with spaces".into()),
+                    ..AppSettings::default()
+                },
+            )
+        });
+
+        assert!(rejected.is_err());
     }
 
     #[test]

@@ -115,6 +115,9 @@ export type ThemePreference = "dark" | "high-contrast" | "light" | "system";
 
 export type CommandViewMode = "compact" | "cards";
 
+/** Which provider the AI workflows use. Never interchangeable. */
+export type AiProvider = "openaiApi" | "chatgptCodex";
+
 export interface AppSettings {
   theme: ThemePreference;
   commandViewMode: CommandViewMode;
@@ -123,6 +126,43 @@ export interface AppSettings {
   closeToTray: boolean;
   aiEnabled: boolean;
   aiModel: string | null;
+  aiProvider: AiProvider;
+  /** Kept apart from aiModel: the two catalogues are not the same. */
+  codexModel: string | null;
+  /** An explicit Codex path. Null means the app finds it. */
+  codexPath: string | null;
+}
+
+/** Why a found Codex cannot be used as it stands. */
+export type CodexUnusableReason =
+  | "missing"
+  | "notExecutable"
+  | "shimNotSupported"
+  | "noVersion"
+  | "timeout";
+
+/** Whether Codex itself is present and usable, before any account exists. */
+export type CodexAvailability =
+  | { state: "ready"; version: string }
+  | { state: "notFound" }
+  | { state: "tooOld"; version: string; minimum: string }
+  | { state: "unusable"; reason: CodexUnusableReason }
+  | { state: "unsupportedPlatform" };
+
+/**
+ * The account in Command Center's own Codex home. `plan` is display metadata
+ * only; entitlements are enforced upstream and must never be inferred here.
+ */
+export type CodexAccount =
+  | { state: "notConnected" }
+  | { state: "connected"; email: string | null; plan: string | null }
+  | { state: "connectedWithOtherCredentials"; kind: string };
+
+export interface CodexStatus {
+  availability: CodexAvailability;
+  account: CodexAccount;
+  accountError: string | null;
+  diagnostics: string[];
 }
 
 export interface AiStatus {

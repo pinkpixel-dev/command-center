@@ -70,9 +70,17 @@ pub fn run() {
             let handle = app.handle().clone();
             let database = recovery::open_library(&handle, library_path(&handle)?)?;
             let ai_service = ai::AiService::new()?;
+            let app_data_dir = handle.path().app_data_dir().map_err(|err| {
+                AppError::runtime(format!("could not resolve app data directory: {err}"))
+            })?;
+            let codex_service = ai::providers::codex::CodexService::new(
+                &app_data_dir,
+                env!("CARGO_PKG_VERSION"),
+            );
 
             app.manage(database);
             app.manage(ai_service);
+            app.manage(codex_service);
             #[cfg(desktop)]
             desktop::setup_tray(app)?;
             Ok(())
@@ -109,6 +117,8 @@ pub fn run() {
             ipc::ai::save_ai_key,
             ipc::ai::remove_ai_key,
             ipc::ai::test_ai_connection,
+            ipc::ai_codex::get_codex_status,
+            ipc::ai_codex::refresh_codex,
             ipc::ai_import::prepare_ai_import,
             ipc::ai_import::run_ai_import,
             ipc::ai_assistant::ask_assistant,
@@ -121,8 +131,16 @@ pub fn run() {
             ipc::ai_convert::conversion_shells,
             ipc::ai_convert::convert_command_shell,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running Command Center");
+        .build(tauri::generate_context!())
+        .expect("error while building Command Center")
+        // Codex is a separate long-lived process. Without this it can outlive
+        // the window that started it.
+        .run(|handle, event| {
+            if matches!(event, tauri::RunEvent::Exit) {
+                let codex = handle.state::<ai::providers::codex::CodexService>();
+                tauri::async_runtime::block_on(codex.shutdown());
+            }
+        });
 }
 
 #[cfg(all(test, target_os = "linux"))]

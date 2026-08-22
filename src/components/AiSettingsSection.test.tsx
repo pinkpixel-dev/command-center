@@ -13,6 +13,8 @@ vi.mock("../lib/ipc", async (importOriginal) => {
     api: {
       ...original.api,
       getAiStatus: vi.fn(),
+      getCodexStatus: vi.fn(),
+      refreshCodex: vi.fn(),
       saveAiKey: vi.fn(),
       removeAiKey: vi.fn(),
       testAiConnection: vi.fn(),
@@ -29,6 +31,9 @@ const baseSettings: AppSettings = {
   closeToTray: false,
   aiEnabled: false,
   aiModel: null,
+  aiProvider: "openaiApi",
+  codexModel: null,
+  codexPath: null,
 };
 
 const status: AiStatus = {
@@ -47,6 +52,64 @@ describe("AiSettingsSection", () => {
     vi.mocked(api.removeAiKey).mockReset();
     vi.mocked(api.testAiConnection).mockReset();
     vi.mocked(api.clearAiExplanations).mockReset();
+    vi.mocked(api.getCodexStatus).mockReset();
+    vi.mocked(api.getCodexStatus).mockResolvedValue({
+      availability: { state: "ready", version: "0.147.0" },
+      account: { state: "notConnected" },
+      accountError: null,
+      diagnostics: [],
+    });
+    vi.mocked(api.refreshCodex).mockReset();
+  });
+
+  it("defaults an existing installation to the OpenAI API key provider", async () => {
+    const enabled = { ...baseSettings, aiEnabled: true };
+
+    render(<AiSettingsSection draft={enabled} saved={enabled} onPatch={vi.fn()} />);
+
+    expect(await screen.findByLabelText("AI provider")).toHaveValue("openaiApi");
+    expect(screen.getByLabelText("OpenAI model")).toBeInTheDocument();
+    await waitFor(() => expect(api.getCodexStatus).not.toHaveBeenCalled());
+  });
+
+  it("switches panels without touching either model selection", async () => {
+    const user = userEvent.setup();
+    const onPatch = vi.fn();
+    const enabled = {
+      ...baseSettings,
+      aiEnabled: true,
+      aiModel: "gpt-5.6-terra",
+      codexModel: "gpt-5.6-luna",
+    };
+
+    render(<AiSettingsSection draft={enabled} saved={enabled} onPatch={onPatch} />);
+    await screen.findByLabelText("AI provider");
+
+    await user.selectOptions(screen.getByLabelText("AI provider"), "chatgptCodex");
+
+    // Only the provider changes. Overwriting the other provider's model here
+    // would silently lose a saved choice.
+    expect(onPatch).toHaveBeenLastCalledWith({ aiProvider: "chatgptCodex" });
+  });
+
+  it("shows the Codex panel and hides the API key controls for the ChatGPT provider", async () => {
+    const codexSelected = {
+      ...baseSettings,
+      aiEnabled: true,
+      aiProvider: "chatgptCodex" as const,
+    };
+
+    render(
+      <AiSettingsSection draft={codexSelected} saved={codexSelected} onPatch={vi.fn()} />,
+    );
+
+    expect(await screen.findByText("Codex 0.147.0 found")).toBeInTheDocument();
+    expect(screen.queryByLabelText("OpenAI model")).not.toBeInTheDocument();
+    // The key controls, not the provider option that shares their name.
+    expect(screen.queryByRole("button", { name: "Add key" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Test connection" }),
+    ).not.toBeInTheDocument();
   });
 
   it("keeps AI configuration hidden while the opt-in switch is off", async () => {

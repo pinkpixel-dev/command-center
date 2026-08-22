@@ -14,6 +14,7 @@ import type {
   AiKeyStatus,
   AiStatus,
   AppSettings,
+  CodexStatus,
   AssistantAsk,
   AssistantReply,
   Collection,
@@ -103,6 +104,8 @@ export const api = {
   saveAiKey: (apiKey: string) => call<AiKeyStatus>("save_ai_key", { apiKey }),
   removeAiKey: () => call<AiKeyStatus>("remove_ai_key"),
   testAiConnection: () => call<AiConnectionResult>("test_ai_connection"),
+  getCodexStatus: () => call<CodexStatus>("get_codex_status"),
+  refreshCodex: () => call<CodexStatus>("refresh_codex"),
   askAssistant: (request: AssistantAsk) => call<AssistantReply>("ask_assistant", { request }),
   cancelAssistantRequest: (requestId: number) =>
     call<boolean>("cancel_assistant_request", { requestId }),

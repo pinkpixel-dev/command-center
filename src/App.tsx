@@ -83,7 +83,7 @@ export default function App() {
   const { entries, stats, tags, collections, loading, error, refresh } = useLibrary(filter);
   const actions = useCommandActions(refresh);
   const editor = useCommandEditor(actions.save);
-  const ai = useAiStatus(settings.aiEnabled);
+  const ai = useAiStatus(settings);
   const files = useLibraryFiles();
   const selectionKey = `${view}:${JSON.stringify(scope)}:${debouncedSearch}:${sort}:${kind}`;
   const bulk = useBulkSelection(entries, selectionKey);

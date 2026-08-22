@@ -1,5 +1,6 @@
 pub mod ai;
 pub mod ai_assistant;
+pub mod ai_codex;
 pub mod ai_convert;
 pub mod ai_diagnose;
 pub mod ai_explain;

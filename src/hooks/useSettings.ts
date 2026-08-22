@@ -12,6 +12,9 @@ export const DEFAULT_SETTINGS: AppSettings = {
   closeToTray: false,
   aiEnabled: false,
   aiModel: null,
+  aiProvider: "openaiApi",
+  codexModel: null,
+  codexPath: null,
 };
 
 export interface SettingsState {

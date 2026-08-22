@@ -38,6 +38,9 @@ const settings: AppSettings = {
   closeToTray: false,
   aiEnabled: false,
   aiModel: null,
+  aiProvider: "openaiApi",
+  codexModel: null,
+  codexPath: null,
 };
 
 describe("SettingsPanel", () => {

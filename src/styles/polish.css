@@ -374,6 +374,65 @@
   line-height: 1.5;
 }
 
+.codex-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.codex-panel__detail {
+  margin-top: var(--space-1);
+  max-width: 60ch;
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.codex-panel__install {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.codex-panel__command {
+  overflow-x: auto;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  white-space: pre;
+}
+
+.codex-panel__diagnostics {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-start;
+}
+
+.codex-panel__log {
+  width: 100%;
+  max-height: 12rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  list-style: none;
+}
+
+.codex-panel__log li {
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
 .ai-settings__test {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
