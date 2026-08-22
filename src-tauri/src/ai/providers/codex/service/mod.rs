@@ -12,6 +12,8 @@ use std::time::Duration;
 use serde::Serialize;
 use tokio::sync::Mutex;
 
+pub mod session;
+
 use super::discovery::{self, CodexDiscovery, UnusableReason};
 use super::launch::{launch_plan, EnvSource};
 use super::process::CodexProcess;
@@ -59,6 +61,14 @@ struct Inner {
     discovery: Option<CodexDiscovery>,
     process: Option<Arc<CodexProcess>>,
     restarts: u32,
+    /// Codex runs one login at a time, so this app tracks one too.
+    active_login: Option<ActiveLogin>,
+}
+
+struct ActiveLogin {
+    login_id: String,
+    /// Resolved by the task watching for `account/login/completed`.
+    completion: tokio::sync::oneshot::Receiver<super::auth::LoginOutcome>,
 }
 
 impl CodexService {

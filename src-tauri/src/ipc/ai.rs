@@ -4,7 +4,12 @@
 use serde::Serialize;
 use tauri::State;
 
-use crate::ai::{AiConnectionResult, AiService, CURATED_MODELS, DEFAULT_MODEL};
+use crate::ai::providers::codex::service::CodexService;
+use crate::ai::providers::AiProvider;
+use crate::ai::{
+    prompts, AiConnectionResult, AiService, CONNECTION_TEST_TIMEOUT, CURATED_MODELS,
+    DEFAULT_MODEL,
+};
 use crate::db::settings;
 use crate::db::Database;
 use crate::error::{AppError, AppResult};
@@ -65,19 +70,44 @@ pub async fn remove_ai_key(ai: State<'_, AiService>) -> AppResult<AiKeyStatus> {
 pub async fn test_ai_connection(
     db: State<'_, Database>,
     ai: State<'_, AiService>,
+    codex: State<'_, CodexService>,
 ) -> AppResult<AiConnectionResult> {
     let settings = db.with(settings::load)?;
     if !settings.ai_enabled {
         return Err(AppError::AiDisabled);
     }
 
-    let model = settings.effective_ai_model().to_owned();
-    let credentials = ai.credentials.clone();
-    let api_key = run_credential_task(move || credentials.load())
-        .await?
-        .ok_or(AppError::AiNotConfigured)?;
+    match settings.provider() {
+        AiProvider::OpenaiApi => {
+            let model = settings.effective_ai_model().to_owned();
+            let credentials = ai.credentials.clone();
+            let api_key = run_credential_task(move || credentials.load())
+                .await?
+                .ok_or(AppError::AiNotConfigured)?;
 
-    ai.client.test_connection(&api_key, &model).await
+            ai.client.test_connection(&api_key, &model).await
+        }
+        AiProvider::ChatgptCodex => {
+            // There is no curated Codex default: the catalogue depends on the
+            // connected plan, so a selection is required rather than guessed.
+            let model = settings
+                .codex_model
+                .clone()
+                .ok_or_else(|| AppError::ai_model("Choose a Codex model in Settings first."))?;
+
+            let output = codex
+                .run_structured_task(
+                    settings.codex_path.as_deref(),
+                    &model,
+                    prompts::connection_test(),
+                    prompts::CONNECTION_TEST_INPUT,
+                    CONNECTION_TEST_TIMEOUT,
+                )
+                .await?;
+
+            crate::ai::parse_connection_test(&output, &model, "Codex")
+        }
+    }
 }
 
 async fn run_credential_task<T, F>(task: F) -> AppResult<T>

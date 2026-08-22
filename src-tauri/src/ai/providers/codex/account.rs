@@ -18,8 +18,9 @@ pub enum CodexAccount {
     Connected {
         /// Absent when Codex does not report one.
         email: Option<String>,
-        /// Display metadata only. Entitlements are enforced upstream, so this
-        /// must never gate a feature.
+        /// A readable plan name for the badge. Display metadata only:
+        /// entitlements are enforced upstream, so this must never gate a
+        /// feature. The raw identifier is not kept, because nothing uses it.
         plan: Option<String>,
     },
     /// Codex is authenticated by something that is not a ChatGPT account.
@@ -47,7 +48,9 @@ pub fn parse_account(value: &Value) -> CodexAccount {
     match account.get("type").and_then(Value::as_str) {
         Some("chatgpt") => CodexAccount::Connected {
             email: bounded_field(account.get("email")),
-            plan: bounded_field(account.get("planType")),
+            plan: bounded_field(account.get("planType"))
+                .as_deref()
+                .map(plan_label),
         },
         Some(other) => CodexAccount::ConnectedWithOtherCredentials {
             kind: bounded_field(Some(&Value::String(other.to_owned())))
@@ -114,7 +117,7 @@ mod tests {
             parse_account(&reply),
             CodexAccount::Connected {
                 email: Some("person@example.com".into()),
-                plan: Some("plus".into()),
+                plan: Some("Plus".into()),
             }
         );
     }
@@ -150,7 +153,7 @@ mod tests {
             parse_account(&reply),
             CodexAccount::Connected {
                 email: None,
-                plan: Some("team".into()),
+                plan: Some("Team".into()),
             }
         );
     }
@@ -208,11 +211,11 @@ mod tests {
 
         let connected = serde_json::to_value(CodexAccount::Connected {
             email: Some("a@b.com".into()),
-            plan: Some("plus".into()),
+            plan: Some("Plus".into()),
         })
         .unwrap();
         assert_eq!(connected["state"], "connected");
         assert_eq!(connected["email"], "a@b.com");
-        assert_eq!(connected["plan"], "plus");
+        assert_eq!(connected["plan"], "Plus");
     }
 }

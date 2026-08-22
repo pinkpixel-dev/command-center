@@ -158,6 +158,17 @@ export type CodexAccount =
   | { state: "connected"; email: string | null; plan: string | null }
   | { state: "connectedWithOtherCredentials"; kind: string };
 
+/** What a started sign-in needs from the user next. */
+export type CodexLoginPrompt =
+  | { mode: "browser" }
+  | { mode: "deviceCode"; verificationUrl: string; userCode: string };
+
+export interface CodexModel {
+  id: string;
+  displayName: string;
+  isDefault: boolean;
+}
+
 export interface CodexStatus {
   availability: CodexAvailability;
   account: CodexAccount;

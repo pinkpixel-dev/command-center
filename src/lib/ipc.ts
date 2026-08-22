@@ -14,6 +14,8 @@ import type {
   AiKeyStatus,
   AiStatus,
   AppSettings,
+  CodexLoginPrompt,
+  CodexModel,
   CodexStatus,
   AssistantAsk,
   AssistantReply,
@@ -106,6 +108,12 @@ export const api = {
   testAiConnection: () => call<AiConnectionResult>("test_ai_connection"),
   getCodexStatus: () => call<CodexStatus>("get_codex_status"),
   refreshCodex: () => call<CodexStatus>("refresh_codex"),
+  startCodexLogin: (useDeviceCode: boolean) =>
+    call<CodexLoginPrompt>("start_codex_login", { useDeviceCode }),
+  awaitCodexLogin: () => call<CodexStatus>("await_codex_login"),
+  cancelCodexLogin: () => call<void>("cancel_codex_login"),
+  disconnectCodex: () => call<CodexStatus>("disconnect_codex"),
+  listCodexModels: () => call<CodexModel[]>("list_codex_models"),
   askAssistant: (request: AssistantAsk) => call<AssistantReply>("ask_assistant", { request }),
   cancelAssistantRequest: (requestId: number) =>
     call<boolean>("cancel_assistant_request", { requestId }),

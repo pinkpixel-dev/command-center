@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::ai::prompts::{self, StructuredTask};
+use crate::ai::CONNECTION_TEST_TIMEOUT;
 use crate::ai::transport::{map_provider_error, map_transport_error, read_bounded_body};
 use crate::error::{AppError, AppResult};
 
@@ -17,7 +18,6 @@ const RESPONSES_URL: &str = "https://api.openai.com/v1/responses";
 /// small reasoning model will happily spend thousands of tokens on it, and an
 /// unused ceiling is not billed.
 const CONNECTION_TEST_TOKENS: u32 = 25_000;
-const CONNECTION_TEST_TIMEOUT: Duration = Duration::from_secs(45);
 
 #[derive(Debug, Clone)]
 pub struct OpenAiClient {
@@ -97,18 +97,7 @@ impl OpenAiClient {
             )
             .await?;
 
-        let parsed: ConnectionTestOutput = serde_json::from_str(&output).map_err(|_| {
-            AppError::AiMalformed("OpenAI returned invalid structured connection-test output.".into())
-        })?;
-        if !parsed.ready {
-            return Err(AppError::AiMalformed(
-                "OpenAI did not confirm the connection test.".into(),
-            ));
-        }
-
-        Ok(AiConnectionResult {
-            model: model.to_owned(),
-        })
+        crate::ai::parse_connection_test(&output, model, "OpenAI")
     }
 }
 
@@ -184,11 +173,6 @@ struct ResponseContentItem {
     text: Option<String>,
     #[serde(default)]
     refusal: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-struct ConnectionTestOutput {
-    ready: bool,
 }
 
 /// `max_output_tokens` is a ceiling on reasoning tokens as well as visible

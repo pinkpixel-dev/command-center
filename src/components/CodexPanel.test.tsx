@@ -14,6 +14,7 @@ vi.mock("../lib/ipc", async (importOriginal) => {
       ...original.api,
       getCodexStatus: vi.fn(),
       refreshCodex: vi.fn(),
+      listCodexModels: vi.fn(),
     },
   };
 });
@@ -54,6 +55,8 @@ describe("CodexPanel", () => {
     vi.mocked(api.getCodexStatus).mockReset();
     vi.mocked(api.refreshCodex).mockReset();
     vi.mocked(api.getCodexStatus).mockResolvedValue(status());
+    vi.mocked(api.listCodexModels).mockReset();
+    vi.mocked(api.listCodexModels).mockResolvedValue([]);
   });
 
   it("reports the installed version when Codex is usable", async () => {
@@ -136,12 +139,26 @@ describe("CodexPanel", () => {
     ).toBeInTheDocument();
   });
 
-  it("does not offer a connect action it cannot perform", async () => {
+  it("offers the account section once Codex is usable", async () => {
     renderPanel();
     await screen.findByText("Codex 0.147.0 found");
 
     expect(
-      screen.queryByRole("button", { name: /connect/i }),
+      await screen.findByRole("button", { name: "Connect ChatGPT" }),
+    ).toBeInTheDocument();
+  });
+
+  it("keeps the account section hidden while Codex is unusable", async () => {
+    vi.mocked(api.getCodexStatus).mockResolvedValue(
+      status({ availability: { state: "notFound" } }),
+    );
+
+    renderPanel();
+    await screen.findByText("Codex was not found");
+
+    // Offering a sign-in with no Codex to run it would be a dead end.
+    expect(
+      screen.queryByRole("button", { name: "Connect ChatGPT" }),
     ).not.toBeInTheDocument();
   });
 

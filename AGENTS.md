@@ -31,8 +31,8 @@
     basic implementations.
 11. No mocks, placeholders, stubs, or temporary implementations remain.
 12. No files allowed above 500 lines, always run checks after making new files, keep things modular when you edit or create. Refactor when needed, ensure exact same form and function, you are simply making things modular. The 500 line limit does not apply to documentation files.
-13. Always write and run tests, no mocks but real useful test.
-14. Use your "Chrome" plugin to check the local dev server WebUI after making major UI changes, use the Chrome devtools as needed as well. Ensure you are connecting to the right host:port. Desktop, mobile, themes, accessibility, and keyboard behavior were checked when relevant. If server is not running, go ahead and start it, check your work, then shutdown the server.
+13. Write real, useful tests when the change warrants them. Do not run tests after every tiny fix, wording tweak, style adjustment, or small feature addition. Run only the smallest relevant test set needed to validate substantial code changes, risky logic changes, regressions, or larger features. Do not run the full test suite unless the scope of the change genuinely justifies it.
+14. Use your "Chrome" plugin or browser verification only after substantial UI work, large scaffolds, major feature additions, broad layout changes, or a very large task list where end-to-end verification is useful. Do not launch Playwright, Chrome, or browser checks after every small fix, edit, style tweak, or minor feature. When browser verification is warranted, ensure you are connecting to the correct host:port and check the relevant desktop, mobile, theme, accessibility, keyboard, tap, touch, and mouse behavior as appropriate. If the server is not running, start it, verify the work, then shut it down.
 15. Always remember this project is used on mobile heavily. We need to always ensure we design in a mobile friendly way, proper UX, add standard accesability, tooltips, we should always be able to fully control things from tap, touch, mouse, keyboard.
 16. Always create an Apache 2.0 `LICENSE` if no license file exists.
 
@@ -85,8 +85,13 @@ When researching, fact-check current information instead of guessing.
 When planning projects, provide concrete phases, file structure, feature lists,
 and implementation order.
 
-When writing docs, keep them human, clear, and a little flavorful without
-becoming gimmicky.
+When writing any documentation, always use all three documentation skills: `pinkpixel-docs`, `avoid-ai-writing`, and `simple-english`. This is mandatory for every documentation task, not optional guidance.
+
+All documentation must sound human, natural, clear, explanatory, and useful. Avoid robotic phrasing, generic AI filler, canned transitions, unnecessary hype, and stiff corporate language. Never use em dashes anywhere in documentation.
+
+Treat `README.md` as user-facing documentation. It should explain what the project is, why someone would use it, how to install or run it, how to use its important features, and anything else a real user needs to succeed with the project. Do not write README files like internal engineering notes.
+
+Apply the same human, explanatory, instructional standard to guides, setup docs, tutorials, reference docs, troubleshooting docs, release notes, project overviews, contribution docs, and other user-facing or explanatory documentation. If a documentation skill conflicts with generic default writing habits, follow the three documentation skills.
 
 When uncertain, say so. Do not hallucinate.
 
@@ -188,10 +193,11 @@ When writing on my behalf:
   sounding fake.
 
 ## Documentation
-Keep all documentation except for the README.md in the /DOCS directory. Everytime you complete a task, you should run the 'date command then update the docs as needed.
+Keep all documentation except for the README.md in the /DOCS directory. Update documentation only when the completed task actually changes behavior, usage, setup, architecture, public-facing information, or other documented facts. Do not touch docs for trivial edits that do not make existing documentation inaccurate. When a documentation update is needed, check the current date before writing dated entries.
 
-Update `CHANGELOG.md` with every user-facing change (check current date first
-with a terminal command).
+For every documentation edit, use `pinkpixel-docs`, `avoid-ai-writing`, and `simple-english`. Documentation must sound human, explanatory, and instructional where appropriate. Never use em dashes.
+
+Update `CHANGELOG.md` for meaningful user-facing code changes. Do not add changelog entries for documentation-only edits unless the documentation itself is the deliverable being released or tracked intentionally.
 
 Keep `OVERVIEW.md` accurate as the living technical reference.
 
@@ -292,16 +298,19 @@ Do not invent features, performance claims, compatibility, supported platforms, 
 
 Use semantic versioning: `MAJOR.MINOR.PATCH`.
 
-- Bump `PATCH` for bug fixes, documentation-only changes, dependency
-  maintenance, small UI polish, and internal improvements that do not add a
-  new user-facing capability.
+- Bump `PATCH` for bug fixes, dependency maintenance, small UI polish, and
+  internal code improvements that do not add a new user-facing capability.
+- Do not bump the version for documentation-only changes, README edits,
+  changelog wording, comments, or other non-code documentation work.
 - Bump `MINOR` for new user-facing features, meaningful workflow changes, new
   settings, new routes, or backwards-compatible capability additions.
 - Bump `MAJOR` only for breaking changes, destructive migrations, major product
   direction changes, or anything that requires users or operators to take
   manual action.
-- Every completed change must include a version bump unless I explicitly say
-  not to bump the version in the current task.
+- Version bumps are for code changes only. Documentation-only tasks never
+  require a version bump.
+- For code changes, include the appropriate semantic version bump unless I
+  explicitly say not to bump the version in the current task.
 - The root `package.json` version is the source of truth. The header badge,
   Settings About version, and any other in-app version display must read from
   `package.json` through `src/lib/app-info.ts`; do not hardcode version strings
@@ -337,3 +346,9 @@ Use semantic versioning: `MAJOR.MINOR.PATCH`.
   [buymeacoffee.com/pinkpixel](https://www.buymeacoffee.com/pinkpixel) · 
   [ko-fi.com/sizzlebop](https://ko-fi.com/sizzlebop)
 - **Signature:** “Made with 💖 by Pink Pixel”
+<!-- memmy:start v=1 -->
+# Memmy Memory
+
+The `memmy-memory` skill is installed at `skills/memmy-memory/SKILL.md`.
+Use that skill when prior memory may be relevant to the current request.
+<!-- memmy:end v=1 -->

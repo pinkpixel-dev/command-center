@@ -20,6 +20,41 @@ pub use credentials::CredentialStore;
 pub use inflight::InFlight;
 pub use proposal::CommandProposal;
 
+/// The connection test returns one boolean, but the budget also has to cover
+/// whatever the model spends on reasoning before it writes that boolean.
+pub const CONNECTION_TEST_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(45);
+
+/// Reads the one-boolean connection-test reply.
+///
+/// Shared by both providers so the schema and the confirmation rule cannot
+/// drift apart. `provider_label` keeps each message accurate about who
+/// answered.
+pub fn parse_connection_test(
+    output: &str,
+    model: &str,
+    provider_label: &str,
+) -> crate::error::AppResult<AiConnectionResult> {
+    #[derive(serde::Deserialize)]
+    struct ConnectionTestOutput {
+        ready: bool,
+    }
+
+    let parsed: ConnectionTestOutput = serde_json::from_str(output).map_err(|_| {
+        crate::error::AppError::AiMalformed(format!(
+            "{provider_label} returned invalid structured connection-test output."
+        ))
+    })?;
+    if !parsed.ready {
+        return Err(crate::error::AppError::AiMalformed(format!(
+            "{provider_label} did not confirm the connection test."
+        )));
+    }
+
+    Ok(AiConnectionResult {
+        model: model.to_owned(),
+    })
+}
+
 pub const DEFAULT_MODEL: &str = "gpt-5.6-luna";
 pub const CURATED_MODELS: &[&str] = &[
     "gpt-5.6-luna",

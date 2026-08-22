@@ -406,6 +406,35 @@
   white-space: pre;
 }
 
+.codex-account {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.codex-account__device {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+}
+
+.codex-panel__code {
+  align-self: flex-start;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  letter-spacing: 0.12em;
+  user-select: all;
+}
+
 .codex-panel__diagnostics {
   display: flex;
   flex-direction: column;

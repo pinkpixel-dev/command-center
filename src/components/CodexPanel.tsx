@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { api, toAppError } from "../lib/ipc";
 import type { AppSettings, CodexAvailability, CodexStatus, CodexUnusableReason } from "../lib/types";
+import { CodexAccountSection } from "./CodexAccountSection";
 import { Button } from "./ui/Button";
 import { TextField } from "./ui/Field";
 
@@ -166,15 +167,14 @@ export function CodexPanel({ draft, saved, onPatch }: CodexPanelProps) {
         />
       )}
 
-      {isReady && (
-        <div className="ai-settings__credential">
-          <div>
-            <span className="field__label">ChatGPT account</span>
-            <p className="ai-settings__key-state" role="status">
-              Connecting a ChatGPT account is not available in this version.
-            </p>
-          </div>
-        </div>
+      {isReady && status && (
+        <CodexAccountSection
+          status={status}
+          draft={draft}
+          saved={saved}
+          onPatch={onPatch}
+          onStatus={setStatus}
+        />
       )}
 
       {status?.accountError && (

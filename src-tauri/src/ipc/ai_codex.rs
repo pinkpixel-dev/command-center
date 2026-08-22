@@ -6,12 +6,15 @@
 
 use serde::Serialize;
 use tauri::State;
+use tauri_plugin_opener::OpenerExt;
 
 use crate::ai::providers::codex::account::{parse_account, CodexAccount};
+use crate::ai::providers::codex::auth::{LoginMode, LoginPrompt, LoginStart};
+use crate::ai::providers::codex::models::CodexModel;
 use crate::ai::providers::codex::service::{CodexAvailability, CodexService};
 use crate::ai::providers::AiProvider;
 use crate::db::{settings, Database};
-use crate::error::AppResult;
+use crate::error::{AppError, AppResult};
 
 /// Everything the ChatGPT panel needs to render one of its states.
 #[derive(Debug, Serialize)]
@@ -65,6 +68,81 @@ pub async fn refresh_codex(
 ) -> AppResult<CodexStatus> {
     codex.refresh().await;
     get_codex_status(db, codex).await
+}
+
+/// Starts a ChatGPT sign-in.
+///
+/// For the browser flow the authorization URL is handed straight to the
+/// system opener and never returned, so it cannot reach the frontend or a log.
+#[tauri::command]
+pub async fn start_codex_login(
+    app: tauri::AppHandle,
+    db: State<'_, Database>,
+    codex: State<'_, CodexService>,
+    use_device_code: bool,
+) -> AppResult<LoginPrompt> {
+    let settings = db.with(settings::load)?;
+    let mode = if use_device_code {
+        LoginMode::DeviceCode
+    } else {
+        LoginMode::Browser
+    };
+
+    let start = codex.start_login(settings.codex_path.as_deref(), mode).await?;
+    let prompt = LoginPrompt::from(&start);
+
+    if let LoginStart::Browser { auth_url, .. } = &start {
+        if let Err(error) = app.opener().open_url(auth_url.as_str(), None::<&str>) {
+            // Leaving the attempt open would keep Codex's callback listener
+            // running for a sign-in the user cannot reach.
+            let _ = codex.cancel_login().await;
+            let _ = error;
+            return Err(AppError::ai_auth(
+                "The browser could not be opened. Use the sign-in code option instead.",
+            ));
+        }
+    }
+
+    Ok(prompt)
+}
+
+/// Waits for the sign-in that `start_codex_login` began, then reports the
+/// refreshed status.
+#[tauri::command]
+pub async fn await_codex_login(
+    db: State<'_, Database>,
+    codex: State<'_, CodexService>,
+) -> AppResult<CodexStatus> {
+    codex.await_login().await?;
+    get_codex_status(db, codex).await
+}
+
+/// Abandons an in-flight sign-in.
+#[tauri::command]
+pub async fn cancel_codex_login(codex: State<'_, CodexService>) -> AppResult<()> {
+    codex.cancel_login().await
+}
+
+/// Disconnects the account from Command Center only. The user's own Codex CLI
+/// login is in a different Codex home and is not touched.
+#[tauri::command]
+pub async fn disconnect_codex(
+    db: State<'_, Database>,
+    codex: State<'_, CodexService>,
+) -> AppResult<CodexStatus> {
+    let settings = db.with(settings::load)?;
+    codex.logout(settings.codex_path.as_deref()).await?;
+    get_codex_status(db, codex).await
+}
+
+/// The live model catalogue for the connected account.
+#[tauri::command]
+pub async fn list_codex_models(
+    db: State<'_, Database>,
+    codex: State<'_, CodexService>,
+) -> AppResult<Vec<CodexModel>> {
+    let settings = db.with(settings::load)?;
+    codex.list_models(settings.codex_path.as_deref()).await
 }
 
 /// Whether the selected provider is ready to run a workflow.

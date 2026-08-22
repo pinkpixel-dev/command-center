@@ -5,12 +5,15 @@
 //! ever reaches this crate, the database, or the frontend.
 
 pub mod account;
+pub mod auth;
 pub mod discovery;
 pub mod launch;
 pub mod lines;
+pub mod models;
 pub mod process;
 pub mod rpc;
 pub mod service;
+pub mod turn;
 pub mod version;
 
 pub use discovery::{discover, CodexDiscovery, UnusableReason};

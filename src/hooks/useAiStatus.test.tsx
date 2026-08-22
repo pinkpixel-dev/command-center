@@ -84,12 +84,16 @@ describe("useAiStatus", () => {
     expect(result.current.ready).toBe(false);
   });
 
-  it("is ready for Codex only with an installation, an account, and a model", async () => {
+  it("reads Codex status but withholds readiness until the workflows are routed", async () => {
     const { result } = renderHook(() =>
       useAiStatus({ ...base, aiProvider: "chatgptCodex", codexModel: "gpt-5.6-luna" }),
     );
 
-    await waitFor(() => expect(result.current.ready).toBe(true));
+    await waitFor(() => expect(result.current.codex).not.toBeNull());
+    // A fully connected account is still not enough: the six workflows send
+    // their requests through the API key path, so showing their entry points
+    // would offer actions that cannot run.
+    expect(result.current.ready).toBe(false);
     expect(api.getAiStatus).not.toHaveBeenCalled();
   });
 
@@ -153,7 +157,7 @@ describe("useAiStatus", () => {
     rerender({ ...base, aiProvider: "chatgptCodex", codexModel: "gpt-5.6-luna" });
 
     await waitFor(() => expect(api.getCodexStatus).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(result.current.ready).toBe(true));
+    await waitFor(() => expect(result.current.status).toBeNull());
   });
 
   it("treats a failed status read as not ready", async () => {
