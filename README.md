@@ -84,12 +84,17 @@ Command Center copies commands. It does not execute them.
 
 AI support is optional and off by default. The complete command library,
 search, organization, templates, local risk checks, export, and backup features
-work without an API key or network connection.
+work without a provider or a network connection.
+
+There are two ways to connect one, and they are never interchangeable. Each
+keeps its own model selection.
 
 The 1.0.0 pre-release pass exercised connection, import, explanation,
 assistant, terminal-error analysis, and shell-conversion quality against a real
 OpenAI account. Automated tests still use local fixtures and do not require a
-developer key or make live model calls.
+developer key or make live model calls. The Codex integration tests run against
+a real Codex installation when one is present and report why they skipped when
+it is not; none of them sign in or spend usage.
 
 When you choose to enable it, Command Center can:
 
@@ -106,25 +111,58 @@ Model output never bypasses the local risk rules. AI suggestions are not run or
 saved automatically, and a shell conversion is never presented as guaranteed
 equivalent.
 
-### Setup
+### Setup with an OpenAI API key
 
 1. Open **Settings**.
 2. Turn on **AI features**.
-3. Choose a model. `gpt-5.6-luna` is the default, but the model list and a
+3. Choose **OpenAI API key** as the provider.
+4. Choose a model. `gpt-5.6-luna` is the default, but the model list and a
    custom model ID are both available.
-4. Add your OpenAI API key.
-5. Use **Test connection** before starting an AI action.
+5. Add your OpenAI API key.
+6. Use **Test connection** before starting an AI action.
 
 Rust sends the key directly from the operating system credential manager. It is
 not written to the library database, browser storage, application logs, or
 returned to the React frontend. You can replace or remove it from Settings.
 There is no plaintext fallback when secure credential storage is unavailable.
 
+### Setup with a ChatGPT account
+
+This route works through [Codex](https://github.com/openai/codex), which you
+install yourself. Command Center does not bundle, download, or install it: the
+executable is around 250 MB, which is a poor trade for an optional feature.
+
+```bash
+npm install -g @openai/codex
+```
+
+1. Open **Settings**.
+2. Turn on **AI features**.
+3. Choose **ChatGPT account (Codex)** as the provider. Command Center reports
+   the Codex version it found, or how to fix it if it did not.
+4. Choose **Connect ChatGPT**. Your browser opens and you sign in with OpenAI.
+   If the browser cannot finish, **Use a sign-in code** works from any device.
+5. Choose a Codex model from the live list for your account.
+6. Save, then use **Test connection**.
+
+Codex owns the sign-in, the tokens, and their refresh. Command Center never
+reads, stores, or receives them, and no API key is entered. Usage follows your
+ChatGPT plan and its available limits; this is not free API access.
+
+Command Center keeps its own Codex settings in its application data directory,
+separate from `~/.codex`. Signing in here does not change the account your
+Codex CLI uses, and signing in there does not connect Command Center. You have
+to connect once in each.
+
+Requires Codex 0.147.0 or newer on Linux or Windows. Mobile builds cannot start
+a local process, so they keep the API key path.
+
 ### What leaves the machine
 
-Every model request uses OpenAI's Responses API with `store: false`. Command
-Center does not send the whole library. It sends only the content needed for the
-action you started:
+With an API key, every request uses OpenAI's Responses API with `store: false`.
+With a ChatGPT account, every request is one temporary Codex thread that is not
+written to disk. Either way Command Center does not send the whole library. It
+sends only the content needed for the action you started:
 
 | Action | Content sent |
 | --- | --- |
@@ -136,8 +174,9 @@ action you started:
 | Convert to another shell | The saved entry you opened, its known source shell, and the target shell you selected, after local likely-secret redaction. |
 
 Import and terminal-error pastes stop at a disclosure screen first. It shows
-the outbound size, selected model, and every value the local detector replaced,
-including its line number and placeholder. You still choose whether to send it.
+the outbound size, the model that will receive it, and every value the local
+detector replaced, including its line number and placeholder. You still choose
+whether to send it.
 
 The detector looks for likely credentials, tokens, private keys, authorization
 headers, and credentials embedded in URLs. It reduces accidental exposure, but
@@ -243,7 +282,8 @@ src/                  React frontend
   lib/                Types, IPC wrappers, and pure helpers
   styles/             Shared tokens and responsive styles
 src-tauri/
-  src/ai/             OpenAI client, prompts, redaction, and proposal review
+  src/ai/             Providers, prompts, redaction, and proposal review
+  src/ai/providers/   The OpenAI API path and the Codex ChatGPT path
   src/db/             SQLite schema, queries, FTS5, and explanation cache
   src/import/         Document parsing, classification, and import execution
   src/ipc/            Tauri commands exposed to the frontend
