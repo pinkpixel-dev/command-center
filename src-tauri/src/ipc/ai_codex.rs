@@ -4,6 +4,8 @@
 //! authorization URL, or a credential. It gets a status payload it can render
 //! and nothing else.
 
+use std::sync::Arc;
+
 use serde::Serialize;
 use tauri::State;
 use tauri_plugin_opener::OpenerExt;
@@ -34,7 +36,7 @@ pub struct CodexStatus {
 #[tauri::command]
 pub async fn get_codex_status(
     db: State<'_, Database>,
-    codex: State<'_, CodexService>,
+    codex: State<'_, Arc<CodexService>>,
 ) -> AppResult<CodexStatus> {
     let settings = db.with(settings::load)?;
     let saved_path = settings.codex_path.clone();
@@ -64,7 +66,7 @@ pub async fn get_codex_status(
 #[tauri::command]
 pub async fn refresh_codex(
     db: State<'_, Database>,
-    codex: State<'_, CodexService>,
+    codex: State<'_, Arc<CodexService>>,
 ) -> AppResult<CodexStatus> {
     codex.refresh().await;
     get_codex_status(db, codex).await
@@ -78,7 +80,7 @@ pub async fn refresh_codex(
 pub async fn start_codex_login(
     app: tauri::AppHandle,
     db: State<'_, Database>,
-    codex: State<'_, CodexService>,
+    codex: State<'_, Arc<CodexService>>,
     use_device_code: bool,
 ) -> AppResult<LoginPrompt> {
     let settings = db.with(settings::load)?;
@@ -111,7 +113,7 @@ pub async fn start_codex_login(
 #[tauri::command]
 pub async fn await_codex_login(
     db: State<'_, Database>,
-    codex: State<'_, CodexService>,
+    codex: State<'_, Arc<CodexService>>,
 ) -> AppResult<CodexStatus> {
     codex.await_login().await?;
     get_codex_status(db, codex).await
@@ -128,7 +130,7 @@ pub async fn cancel_codex_login(codex: State<'_, CodexService>) -> AppResult<()>
 #[tauri::command]
 pub async fn disconnect_codex(
     db: State<'_, Database>,
-    codex: State<'_, CodexService>,
+    codex: State<'_, Arc<CodexService>>,
 ) -> AppResult<CodexStatus> {
     let settings = db.with(settings::load)?;
     codex.logout(settings.codex_path.as_deref()).await?;
@@ -139,7 +141,7 @@ pub async fn disconnect_codex(
 #[tauri::command]
 pub async fn list_codex_models(
     db: State<'_, Database>,
-    codex: State<'_, CodexService>,
+    codex: State<'_, Arc<CodexService>>,
 ) -> AppResult<Vec<CodexModel>> {
     let settings = db.with(settings::load)?;
     codex.list_models(settings.codex_path.as_deref()).await

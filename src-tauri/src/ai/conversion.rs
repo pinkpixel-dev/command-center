@@ -11,7 +11,7 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
-use crate::ai::client::{OpenAiClient, StructuredCall};
+use crate::ai::providers::{ProviderCall, ProviderClient};
 use crate::ai::prompts::{self, MAX_CONVERSION_NOTES};
 use crate::ai::proposal::{self, CommandProposal, RawProposal};
 use crate::ai::redaction;
@@ -187,18 +187,16 @@ pub fn build_input(request: &ConversionRequest<'_>) -> String {
 }
 
 pub async fn convert(
-    client: &OpenAiClient,
-    api_key: &str,
+    provider: &ProviderClient,
     model: &str,
     request: ConversionRequest<'_>,
 ) -> AppResult<ShellConversion> {
     check(&request)?;
     let input = build_input(&request);
 
-    let output = client
+    let output = provider
         .structured_json(
-            api_key,
-            StructuredCall {
+            ProviderCall {
                 model,
                 task: prompts::shell_conversion(),
                 input: &input,

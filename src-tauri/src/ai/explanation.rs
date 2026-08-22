@@ -10,7 +10,7 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
-use crate::ai::client::{OpenAiClient, StructuredCall};
+use crate::ai::providers::{ProviderCall, ProviderClient};
 use crate::ai::prompts::{self, MAX_EXPLANATION_ITEMS};
 use crate::ai::redaction;
 use crate::error::{AppError, AppResult};
@@ -157,18 +157,16 @@ pub fn build_input(request: &ExplanationRequest<'_>) -> String {
 }
 
 pub async fn generate(
-    client: &OpenAiClient,
-    api_key: &str,
+    provider: &ProviderClient,
     model: &str,
     request: ExplanationRequest<'_>,
 ) -> AppResult<Explanation> {
     check_size(request.content)?;
     let input = build_input(&request);
 
-    let output = client
+    let output = provider
         .structured_json(
-            api_key,
-            StructuredCall {
+            ProviderCall {
                 model,
                 task: prompts::explanation(),
                 input: &input,

@@ -70,7 +70,7 @@ pub async fn remove_ai_key(ai: State<'_, AiService>) -> AppResult<AiKeyStatus> {
 pub async fn test_ai_connection(
     db: State<'_, Database>,
     ai: State<'_, AiService>,
-    codex: State<'_, CodexService>,
+    codex: State<'_, std::sync::Arc<CodexService>>,
 ) -> AppResult<AiConnectionResult> {
     let settings = db.with(settings::load)?;
     if !settings.ai_enabled {

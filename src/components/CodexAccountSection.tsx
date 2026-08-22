@@ -285,13 +285,6 @@ export function CodexAccountSection({
         </div>
       )}
 
-      {readyToTest && (
-        <p className="codex-panel__detail" role="status">
-          Test connection runs through Codex. The other AI actions still use the
-          OpenAI API key provider in this version.
-        </p>
-      )}
-
       {testResult && (
         <p className="settings__status" role="status">
           {testResult}

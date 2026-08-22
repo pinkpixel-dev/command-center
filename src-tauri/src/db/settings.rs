@@ -85,6 +85,19 @@ impl AppSettings {
     pub fn effective_ai_model(&self) -> &str {
         self.ai_model.as_deref().unwrap_or(crate::ai::DEFAULT_MODEL)
     }
+
+    /// The model the selected provider will actually use.
+    ///
+    /// `None` only when Codex is selected and nothing has been chosen yet.
+    /// There is no Codex default to fall back on, and showing an OpenAI model
+    /// on a disclosure screen for a Codex request would be a lie about where
+    /// the text is going.
+    pub fn selected_model(&self) -> Option<&str> {
+        match self.provider() {
+            crate::ai::providers::AiProvider::OpenaiApi => Some(self.effective_ai_model()),
+            crate::ai::providers::AiProvider::ChatgptCodex => self.codex_model.as_deref(),
+        }
+    }
 }
 
 /// Reads settings, healing a corrupted row by returning defaults rather than
@@ -274,6 +287,31 @@ mod tests {
 
         let loaded = db.with(load).unwrap();
         assert_eq!(loaded.theme, "dark");
+    }
+
+    #[test]
+    fn the_selected_model_follows_the_chosen_provider() {
+        use crate::ai::providers::AiProvider;
+
+        let openai = AppSettings {
+            ai_model: Some("gpt-5.6-terra".into()),
+            codex_model: Some("gpt-5.6-luna".into()),
+            ..AppSettings::default()
+        };
+        assert_eq!(openai.selected_model(), Some("gpt-5.6-terra"));
+
+        let codex = AppSettings {
+            ai_provider: AiProvider::ChatgptCodex.as_str().into(),
+            ..openai.clone()
+        };
+        assert_eq!(codex.selected_model(), Some("gpt-5.6-luna"));
+
+        // No Codex default exists, so an unchosen model has no stand-in.
+        let unchosen = AppSettings {
+            codex_model: None,
+            ..codex
+        };
+        assert_eq!(unchosen.selected_model(), None);
     }
 
     #[test]

@@ -70,13 +70,6 @@ export function useAiStatus(settings: AppSettings): AiAvailability {
   return { status, codex, ready, refresh };
 }
 
-/**
- * The six AI workflows still send their requests through the OpenAI API key
- * path. Codex currently powers Test connection only, so the entry points that
- * would fail stay hidden. Flip this when the workflows are routed.
- */
-const CODEX_WORKFLOWS_ROUTED = false;
-
 function isProviderReady(
   provider: AppSettings["aiProvider"],
   status: AiStatus | null,
@@ -90,7 +83,6 @@ function isProviderReady(
   // Codex needs an installation, a connected ChatGPT account, and a model
   // chosen from the live list. There is no curated default to fall back on.
   return (
-    CODEX_WORKFLOWS_ROUTED &&
     codex?.availability.state === "ready" &&
     codex.account.state === "connected" &&
     codexModel !== null

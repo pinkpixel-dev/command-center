@@ -4,10 +4,13 @@
 //! output, so it stays hidden while AI is off. Clearing is deliberately not
 //! gated: a removal action has to keep working after the switch is turned off.
 
+use std::sync::Arc;
+
 use serde::Serialize;
 use tauri::State;
 
 use crate::ai::explanation::{self, Explanation, ExplanationRequest};
+use crate::ai::providers::{self, codex::service::CodexService};
 use crate::ai::AiService;
 use crate::db::settings::{self, AppSettings};
 use crate::db::{commands as commands_db, explanations, Database};
@@ -46,6 +49,7 @@ pub async fn get_command_explanation(
 pub async fn explain_command(
     db: State<'_, Database>,
     ai: State<'_, AiService>,
+    codex: State<'_, Arc<CodexService>>,
     command_id: i64,
 ) -> AppResult<ExplanationView> {
     // The entry and the settings are read and the lock dropped before any
@@ -57,17 +61,11 @@ pub async fn explain_command(
     })?;
 
     explanation::check_size(&entry.content)?;
-    let model = settings.effective_ai_model().to_owned();
 
-    let credentials = ai.credentials.clone();
-    let api_key = tauri::async_runtime::spawn_blocking(move || credentials.load())
-        .await
-        .map_err(|_| AppError::credential("The operating system credential manager stopped."))??
-        .ok_or(AppError::AiNotConfigured)?;
+    let (provider, model) = providers::resolve(&settings, &ai, &codex).await?;
 
     let generated = explanation::generate(
-        &ai.client,
-        &api_key,
+        &provider,
         &model,
         ExplanationRequest {
             content: &entry.content,

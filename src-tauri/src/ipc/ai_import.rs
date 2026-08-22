@@ -2,9 +2,12 @@
 //! is the one place in the app where a user document leaves the machine, and it
 //! only runs after the user has seen what will be sent.
 
+use std::sync::Arc;
+
 use tauri::State;
 
 use crate::ai::disclosure::{self, OutboundPlan};
+use crate::ai::providers::{self, codex::service::CodexService};
 use crate::ai::{import as ai_import, AiService};
 use crate::db::settings::{self, AppSettings};
 use crate::db::Database;
@@ -21,13 +24,14 @@ pub async fn prepare_ai_import(db: State<'_, Database>, content: String) -> AppR
     require_ai_enabled(&settings)?;
     ai_import::check_document_size(&content)?;
 
-    Ok(disclosure::plan(&content, settings.effective_ai_model()).1)
+    Ok(disclosure::plan(&content, selected_model(&settings)?).1)
 }
 
 #[tauri::command]
 pub async fn run_ai_import(
     db: State<'_, Database>,
     ai: State<'_, AiService>,
+    codex: State<'_, Arc<CodexService>>,
     content: String,
     source_name: Option<String>,
 ) -> AppResult<ImportPreview> {
@@ -37,18 +41,13 @@ pub async fn run_ai_import(
     require_ai_enabled(&settings)?;
     ai_import::check_document_size(&content)?;
 
-    let model = settings.effective_ai_model().to_owned();
+    // Resolve first, so the disclosure names the model that will receive the
+    // document rather than the other provider's saved choice.
+    let (provider, model) = providers::resolve(&settings, &ai, &codex).await?;
     let (redacted, _) = disclosure::plan(&content, &model);
 
-    let credentials = ai.credentials.clone();
-    let api_key = tauri::async_runtime::spawn_blocking(move || credentials.load())
-        .await
-        .map_err(|_| AppError::credential("The operating system credential manager stopped."))??
-        .ok_or(AppError::AiNotConfigured)?;
-
     let items = ai_import::extract(
-        &ai.client,
-        &api_key,
+        &provider,
         &model,
         &redacted,
         source_name.as_deref(),
@@ -56,6 +55,16 @@ pub async fn run_ai_import(
     .await?;
 
     db.with(|conn| ai_candidates::build(conn, items, source_name.as_deref()))
+}
+
+/// The model a disclosure screen must name.
+///
+/// Naming the wrong provider's model on the one screen that explains where a
+/// document is going would be worse than refusing to show it.
+pub(crate) fn selected_model(settings: &AppSettings) -> AppResult<&str> {
+    settings
+        .selected_model()
+        .ok_or_else(|| AppError::ai_model("Choose a Codex model in Settings first."))
 }
 
 fn require_ai_enabled(settings: &AppSettings) -> AppResult<()> {

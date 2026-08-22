@@ -4,11 +4,14 @@
 //!
 //! The network work runs in its own task so Cancel can actually abort it.
 
+use std::sync::Arc;
+
 use serde::Deserialize;
-use tauri::async_runtime::{channel, spawn, spawn_blocking};
+use tauri::async_runtime::{channel, spawn};
 use tauri::State;
 
 use crate::ai::assistant::{self, AssistantReply, AssistantRequest, EntryContext, Subject, Turn};
+use crate::ai::providers::{self, codex::service::CodexService};
 use crate::ai::{diagnosis, AiService};
 use crate::db::settings::{self, AppSettings};
 use crate::db::{commands as commands_db, Database};
@@ -39,6 +42,7 @@ pub struct AssistantAsk {
 pub async fn ask_assistant(
     db: State<'_, Database>,
     ai: State<'_, AiService>,
+    codex: State<'_, Arc<CodexService>>,
     request: AssistantAsk,
 ) -> AppResult<AssistantReply> {
     // Settings and the entry are read and the lock dropped before any await, so
@@ -61,14 +65,7 @@ pub async fn ask_assistant(
         diagnosis::check_output_size(output)?;
     }
 
-    let model = settings.effective_ai_model().to_owned();
-    let credentials = ai.credentials.clone();
-    let api_key = spawn_blocking(move || credentials.load())
-        .await
-        .map_err(|_| AppError::credential("The operating system credential manager stopped."))??
-        .ok_or(AppError::AiNotConfigured)?;
-
-    let client = ai.client.clone();
+    let (provider, model) = providers::resolve(&settings, &ai, &codex).await?;
     let AssistantAsk {
         request_id,
         error_output,
@@ -80,8 +77,7 @@ pub async fn ask_assistant(
     let (answer, mut answers) = channel::<AppResult<AssistantReply>>(1);
     let handle = spawn(async move {
         let result = assistant::ask(
-            &client,
-            &api_key,
+            &provider,
             &model,
             AssistantRequest {
                 subject: subject(entry.as_ref(), error_output.as_deref()),

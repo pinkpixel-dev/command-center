@@ -13,7 +13,7 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
-use crate::ai::client::{OpenAiClient, StructuredCall};
+use crate::ai::providers::{ProviderCall, ProviderClient};
 use crate::ai::prompts::{self, MAX_ANALYSIS_ITEMS};
 use crate::ai::proposal::{self, CommandProposal, RawProposal};
 use crate::error::{AppError, AppResult};
@@ -133,17 +133,15 @@ pub fn build_input(redacted: &str) -> String {
 }
 
 pub async fn analyze(
-    client: &OpenAiClient,
-    api_key: &str,
+    provider: &ProviderClient,
     model: &str,
     redacted: &str,
 ) -> AppResult<ErrorAnalysis> {
     let input = build_input(redacted);
 
-    let output = client
+    let output = provider
         .structured_json(
-            api_key,
-            StructuredCall {
+            ProviderCall {
                 model,
                 task: prompts::error_analysis(),
                 input: &input,

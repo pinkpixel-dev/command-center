@@ -73,10 +73,12 @@ pub fn run() {
             let app_data_dir = handle.path().app_data_dir().map_err(|err| {
                 AppError::runtime(format!("could not resolve app data directory: {err}"))
             })?;
-            let codex_service = ai::providers::codex::CodexService::new(
+            // Wrapped so a resolved provider can move into the task that runs
+            // a request, which is what makes Cancel able to abort it.
+            let codex_service = std::sync::Arc::new(ai::providers::codex::CodexService::new(
                 &app_data_dir,
                 env!("CARGO_PKG_VERSION"),
-            );
+            ));
 
             app.manage(database);
             app.manage(ai_service);
@@ -142,7 +144,7 @@ pub fn run() {
         // the window that started it.
         .run(|handle, event| {
             if matches!(event, tauri::RunEvent::Exit) {
-                let codex = handle.state::<ai::providers::codex::CodexService>();
+                let codex = handle.state::<std::sync::Arc<ai::providers::codex::CodexService>>();
                 tauri::async_runtime::block_on(codex.shutdown());
             }
         });

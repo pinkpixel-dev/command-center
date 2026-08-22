@@ -11,7 +11,7 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
-use crate::ai::client::{OpenAiClient, StructuredCall};
+use crate::ai::providers::{ProviderCall, ProviderClient};
 use crate::ai::diagnosis;
 use crate::ai::prompts::{self, MAX_ASSISTANT_PROPOSALS};
 use crate::ai::proposal::{self, CommandProposal, RawProposal};
@@ -202,18 +202,16 @@ pub fn output_token_budget(input_bytes: usize) -> u32 {
 }
 
 pub async fn ask(
-    client: &OpenAiClient,
-    api_key: &str,
+    provider: &ProviderClient,
     model: &str,
     request: AssistantRequest<'_>,
 ) -> AppResult<AssistantReply> {
     check_message(request.message)?;
     let input = build_input(&request);
 
-    let output = client
+    let output = provider
         .structured_json(
-            api_key,
-            StructuredCall {
+            ProviderCall {
                 model,
                 task: prompts::assistant(),
                 input: &input,

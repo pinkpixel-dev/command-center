@@ -249,16 +249,6 @@ describe("CodexAccountSection", () => {
     expect(await screen.findByText("Connected with gpt-5.6-luna")).toBeInTheDocument();
   });
 
-  it("says which actions Codex currently covers", async () => {
-    renderSection(connectedStatus, { codexModel: "gpt-5.6-luna" });
-
-    // Being told the other actions still use the API key beats watching them
-    // silently stay hidden.
-    expect(
-      await screen.findByText(/other AI actions still use the OpenAI API key/),
-    ).toBeInTheDocument();
-  });
-
   it("reports a usage limit as its own message", async () => {
     const user = userEvent.setup();
     vi.mocked(api.testAiConnection).mockRejectedValue({

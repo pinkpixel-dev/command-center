@@ -5,11 +5,14 @@
 //! nothing here writes: a conversion the user wants to keep goes through the
 //! normal entry form like every other new command.
 
+use std::sync::Arc;
+
 use serde::Serialize;
-use tauri::async_runtime::{channel, spawn, spawn_blocking};
+use tauri::async_runtime::{channel, spawn};
 use tauri::State;
 
 use crate::ai::conversion::{self, ConversionRequest, ShellConversion, TargetShell};
+use crate::ai::providers::{self, codex::service::CodexService};
 use crate::ai::AiService;
 use crate::db::settings::{self, AppSettings};
 use crate::db::{commands as commands_db, Database};
@@ -40,6 +43,7 @@ pub async fn conversion_shells() -> AppResult<Vec<ShellOption>> {
 pub async fn convert_command_shell(
     db: State<'_, Database>,
     ai: State<'_, AiService>,
+    codex: State<'_, Arc<CodexService>>,
     request_id: u64,
     command_id: i64,
     target_shell: String,
@@ -62,19 +66,11 @@ pub async fn convert_command_shell(
         target,
     })?;
 
-    let model = settings.effective_ai_model().to_owned();
-    let credentials = ai.credentials.clone();
-    let api_key = spawn_blocking(move || credentials.load())
-        .await
-        .map_err(|_| AppError::credential("The operating system credential manager stopped."))??
-        .ok_or(AppError::AiNotConfigured)?;
-
-    let client = ai.client.clone();
+    let (provider, model) = providers::resolve(&settings, &ai, &codex).await?;
     let (answer, mut answers) = channel::<AppResult<ShellConversion>>(1);
     let handle = spawn(async move {
         let result = conversion::convert(
-            &client,
-            &api_key,
+            &provider,
             &model,
             ConversionRequest {
                 content: &entry.content,

@@ -1,7 +1,7 @@
 //! Shared AI configuration and the Rust-owned OpenAI boundary.
 
 pub mod assistant;
-mod client;
+pub(crate) mod client;
 pub mod conversion;
 mod credentials;
 pub mod diagnosis;

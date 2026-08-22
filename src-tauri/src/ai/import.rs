@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use serde::Deserialize;
 
-use crate::ai::client::{OpenAiClient, StructuredCall};
+use crate::ai::providers::{ProviderCall, ProviderClient};
 use crate::ai::prompts::{self, MAX_IMPORT_ITEMS};
 use crate::error::{AppError, AppResult};
 
@@ -107,17 +107,15 @@ pub fn output_token_budget(document_bytes: usize) -> u32 {
 }
 
 pub async fn extract(
-    client: &OpenAiClient,
-    api_key: &str,
+    provider: &ProviderClient,
     model: &str,
     redacted: &str,
     source_name: Option<&str>,
 ) -> AppResult<Vec<AiImportItem>> {
     let input = build_input(redacted, source_name);
-    let output = client
+    let output = provider
         .structured_json(
-            api_key,
-            StructuredCall {
+            ProviderCall {
                 model,
                 task: prompts::import_extraction(),
                 input: &input,
