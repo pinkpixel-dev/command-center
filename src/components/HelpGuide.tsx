@@ -70,9 +70,22 @@ export function HelpGuide({ open, onClose }: HelpGuideProps) {
         <section>
           <h3>AI is optional</h3>
           <p>
-            AI starts off and the command library works without a key or network connection. Add
-            an OpenAI API key and turn AI on in Settings when you want the extra tools. The key is
-            stored by your operating system and is never returned to the app interface.
+            AI starts off and the command library works without a key or network connection. Turn
+            it on in Settings and choose a provider when you want the extra tools.
+          </p>
+          <p>
+            <strong>OpenAI API key</strong> sends requests straight to OpenAI with a key you
+            provide. The key is stored by your operating system and is never returned to the app
+            interface.
+          </p>
+          <p>
+            <strong>ChatGPT account</strong> works through Codex, which you install yourself.
+            Command Center starts it, and Codex signs you in and holds the credentials, so no key
+            is entered here. Usage follows your ChatGPT plan and its limits. Command Center keeps
+            its own Codex settings, so signing in here does not change the account your Codex CLI
+            uses, and signing in there does not connect Command Center. Install Codex with{" "}
+            <code>npm install -g @openai/codex</code>. If it lives somewhere the app cannot find,
+            Settings takes the full path.
           </p>
           <p className="help-guide__note">
             AI requests are not stored by OpenAI through the API. Command Center checks likely

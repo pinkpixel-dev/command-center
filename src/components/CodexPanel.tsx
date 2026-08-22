@@ -33,7 +33,7 @@ function availabilityHeadline(availability: CodexAvailability): string {
 function availabilityDetail(availability: CodexAvailability): string {
   switch (availability.state) {
     case "ready":
-      return "Command Center keeps its own Codex settings, separate from your Codex CLI.";
+      return "";
     case "notFound":
       return `Install Codex, then choose Check again. If it is already installed somewhere unusual, enter its full path below.`;
     case "tooOld":
@@ -106,6 +106,14 @@ export function CodexPanel({ draft, saved, onPatch }: CodexPanelProps) {
   const pathChanged = (draft.codexPath ?? "") !== (saved.codexPath ?? "");
   const availability = status?.availability;
   const isReady = availability?.state === "ready";
+  // Most people never need this. It appears when discovery could not produce a
+  // usable Codex, or when a path is already saved so it can be changed or
+  // cleared.
+  const showPathField =
+    !loading &&
+    availability !== undefined &&
+    availability.state !== "unsupportedPlatform" &&
+    (availability.state !== "ready" || draft.codexPath !== null);
 
   return (
     <div className="codex-panel">
@@ -119,7 +127,7 @@ export function CodexPanel({ draft, saved, onPatch }: CodexPanelProps) {
                 ? availabilityHeadline(availability)
                 : "Codex status is unavailable"}
           </p>
-          {!loading && availability && (
+          {!loading && availability && availabilityDetail(availability) && (
             <p className="codex-panel__detail">{availabilityDetail(availability)}</p>
           )}
         </div>
@@ -149,7 +157,7 @@ export function CodexPanel({ draft, saved, onPatch }: CodexPanelProps) {
         </div>
       )}
 
-      {!loading && availability?.state !== "unsupportedPlatform" && (
+      {showPathField && (
         <TextField
           label="Codex program path"
           value={draft.codexPath ?? ""}

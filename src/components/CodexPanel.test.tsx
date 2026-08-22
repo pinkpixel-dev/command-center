@@ -117,12 +117,43 @@ describe("CodexPanel", () => {
     expect(await screen.findByText("Codex 0.147.0 found")).toBeInTheDocument();
   });
 
+  it("keeps the path field out of the way when Codex was found", async () => {
+    renderPanel();
+    await screen.findByText("Codex 0.147.0 found");
+
+    // Most people never need it, so a working install shows the status and
+    // nothing to configure.
+    expect(screen.queryByLabelText("Codex program path")).not.toBeInTheDocument();
+  });
+
+  it("offers the path field when discovery could not find Codex", async () => {
+    vi.mocked(api.getCodexStatus).mockResolvedValue(
+      status({ availability: { state: "notFound" } }),
+    );
+
+    renderPanel();
+    await screen.findByText("Codex was not found");
+
+    expect(screen.getByLabelText("Codex program path")).toBeInTheDocument();
+  });
+
+  it("keeps the path field visible when one is already saved", async () => {
+    renderPanel({ codexPath: "/opt/codex" });
+    await screen.findByText("Codex 0.147.0 found");
+
+    // A saved path has to stay changeable and clearable.
+    expect(screen.getByLabelText("Codex program path")).toHaveValue("/opt/codex");
+  });
+
   it("records a manual path without saving it directly", async () => {
     const user = userEvent.setup();
     const onPatch = vi.fn();
+    vi.mocked(api.getCodexStatus).mockResolvedValue(
+      status({ availability: { state: "notFound" } }),
+    );
 
     renderPanel({}, onPatch);
-    await screen.findByText("Codex 0.147.0 found");
+    await screen.findByText("Codex was not found");
 
     await user.type(screen.getByLabelText("Codex program path"), "/opt/codex");
 
@@ -133,6 +164,7 @@ describe("CodexPanel", () => {
 
   it("tells the user to save before an edited path takes effect", async () => {
     renderPanel({ codexPath: "/opt/codex" });
+    await screen.findByText("Codex 0.147.0 found");
 
     expect(
       await screen.findByText(/Save settings, then choose Check again/),
