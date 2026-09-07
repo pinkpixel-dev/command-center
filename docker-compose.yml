@@ -9,23 +9,41 @@
 services:
   command-center:
     image: pinkpixeldev/command-center:latest
-    # With both of these, a checkout builds the image and a published tag is
-    # pulled. Run `docker compose build` to rebuild after changing anything.
-    build: .
     container_name: command-center
     restart: unless-stopped
     ports:
       - "8787:8787"
-    environment:
-      # Required. The server refuses to start without it.
-      COMMAND_CENTER_PASSWORD: ${COMMAND_CENTER_PASSWORD:?set a password of at least 8 characters}
-      # Optional, for the OpenAI provider. Codex signs in through the app
-      # instead and needs nothing here.
-      COMMAND_CENTER_OPENAI_API_KEY: ${COMMAND_CENTER_OPENAI_API_KEY:-}
+    env_file:
+      - .env
     volumes:
       # One mount covers the library and the Codex login, because both sit
       # under the data directory.
       - command-center-data:/var/lib/command-center
+    user: "0:0"
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        if [ ! -f /usr/local/bin/codex-bin ]; then
+          mv /usr/local/bin/codex /usr/local/bin/codex-bin
+          cat << 'SUBEOF' > /usr/local/bin/codex
+        #!/bin/sh
+        ARGS=""
+        for a in "$$@"; do
+          case "$$a" in
+            *cli_auth_credentials_store=*keyring*)
+              ARGS="$$ARGS cli_auth_credentials_store=\"file\""
+              ;;
+            *)
+              ARGS="$$ARGS \"$$a\""
+              ;;
+          esac
+        done
+        eval exec /usr/local/bin/codex-bin $$ARGS
+        SUBEOF
+          chmod +x /usr/local/bin/codex
+        fi
+        exec su -m -s /bin/sh command-center -c "exec /usr/bin/tini -- /usr/local/bin/docker-entrypoint.sh command-center-server"
 
 volumes:
   command-center-data:
