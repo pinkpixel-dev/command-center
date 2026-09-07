@@ -5,6 +5,7 @@
 pub mod ai_candidates;
 pub mod apply;
 pub mod classify;
+pub mod document;
 pub mod naming;
 pub mod parser;
 

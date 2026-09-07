@@ -103,11 +103,38 @@ fn markdown_fence(content: &str) -> String {
     "`".repeat((longest + 1).max(3))
 }
 
+/// The whole library as one Markdown document. Separate from writing it, so a
+/// server can send the same bytes as a download instead of saving them.
+pub fn library_markdown(db: &Database) -> AppResult<String> {
+    let entries = db.with(commands::list_all)?;
+    Ok(markdown(&entries, &exported_at()))
+}
+
+/// One collection as Markdown, with the collection name alongside it because
+/// the caller needs it for the heading's sake and for naming the file.
+pub fn collection_markdown_document(
+    db: &Database,
+    collection_id: i64,
+) -> AppResult<(String, String)> {
+    let (collection, entries) = db.with(|connection| {
+        let collection = collections::get(connection, collection_id)?;
+        let entries = commands::list_for_collection(connection, collection_id)?;
+        Ok((collection, entries))
+    })?;
+
+    let content = collection_markdown(&collection.name, &entries, &exported_at());
+    Ok((collection.name, content))
+}
+
+fn exported_at() -> String {
+    chrono::Utc::now()
+        .format("%B %-d, %Y at %H:%M UTC")
+        .to_string()
+}
+
 pub fn export_markdown(db: &Database, destination: &Path) -> AppResult<()> {
     validate_destination(destination, &["md", "markdown"])?;
-    let entries = db.with(commands::list_all)?;
-    let timestamp = chrono::Utc::now().format("%B %-d, %Y at %H:%M UTC");
-    let content = markdown(&entries, &timestamp.to_string());
+    let content = library_markdown(db)?;
     std::fs::write(destination, content)
         .map_err(|error| AppError::runtime(format!("could not write Markdown export: {error}")))
 }
@@ -118,13 +145,7 @@ pub fn export_collection_markdown(
     destination: &Path,
 ) -> AppResult<()> {
     validate_destination(destination, &["md", "markdown"])?;
-    let (collection, entries) = db.with(|connection| {
-        let collection = collections::get(connection, collection_id)?;
-        let entries = commands::list_for_collection(connection, collection_id)?;
-        Ok((collection, entries))
-    })?;
-    let timestamp = chrono::Utc::now().format("%B %-d, %Y at %H:%M UTC");
-    let content = collection_markdown(&collection.name, &entries, &timestamp.to_string());
+    let (_, content) = collection_markdown_document(db, collection_id)?;
     std::fs::write(destination, content).map_err(|error| {
         AppError::runtime(format!(
             "could not write collection Markdown export: {error}"

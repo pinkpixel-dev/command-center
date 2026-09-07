@@ -1,23 +1,36 @@
-//! Import. The two commands that read a path off the local disk are not here:
-//! on a server the client uploads bytes instead, which is its own phase.
+//! Import. The two commands the desktop app answers with a file path are here
+//! too, inverted: the client uploads the bytes rather than naming a file the
+//! server has no way to reach.
 
-use axum::extract::State;
+use axum::extract::{Multipart, State};
 use axum::routing::post;
 use axum::{Json, Router};
 use serde::Deserialize;
 
 use command_center_core::import::apply::{ImportItem, ImportSummary};
+use command_center_core::import::document::ImportDocument;
 use command_center_core::import::{self, ImportPreview, SnippetAnalysis};
 use command_center_core::library;
 
 use crate::error::{ok, ApiResult};
 use crate::state::AppState;
+use crate::upload;
 
 pub fn routes() -> Router<AppState> {
     Router::new()
         .route("/preview_import_text", post(preview_import_text))
         .route("/analyze_snippet", post(analyze_snippet))
         .route("/import_commands", post(import_commands))
+        // The raised body limit is on the two upload routes alone, so an
+        // oversized JSON post is still refused at the usual size.
+        .route(
+            "/read_import_document",
+            post(read_import_document).layer(upload::body_limit()),
+        )
+        .route(
+            "/preview_import_file",
+            post(preview_import_file).layer(upload::body_limit()),
+        )
 }
 
 #[derive(Deserialize)]
@@ -55,6 +68,23 @@ async fn analyze_snippet(
     Json(body): Json<ContentBody>,
 ) -> ApiResult<SnippetAnalysis> {
     ok(state.db.with(|conn| import::analyze(conn, &body.content))?)
+}
+
+/// The upload the frontend hands to the import screen, read here so the
+/// browser never has to parse it.
+async fn read_import_document(multipart: Multipart) -> ApiResult<ImportDocument> {
+    ok(upload::document(multipart).await?)
+}
+
+async fn preview_import_file(
+    State(state): State<AppState>,
+    multipart: Multipart,
+) -> ApiResult<ImportPreview> {
+    let file = upload::document(multipart).await?;
+
+    ok(state
+        .db
+        .with(|conn| import::preview(conn, &file.content, file.name.as_deref()))?)
 }
 
 async fn import_commands(

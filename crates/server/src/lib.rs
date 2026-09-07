@@ -7,7 +7,9 @@
 
 pub mod config;
 pub mod credentials;
+pub mod download;
 pub mod error;
 pub mod events;
 pub mod routes;
 pub mod state;
+pub mod upload;

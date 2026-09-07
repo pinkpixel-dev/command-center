@@ -3,43 +3,19 @@
 
 use std::path::Path;
 
-use serde::Serialize;
 use tauri::{AppHandle, State};
 
 use crate::db::Database;
 use crate::error::{AppError, AppResult};
 use crate::events::DesktopEvents;
 use crate::import::apply::{ImportItem, ImportSummary};
+use crate::import::document::{self, ImportDocument};
 use crate::import::{self, ImportPreview, SnippetAnalysis};
 use crate::library;
 
-/// Extensions the file picker and drag-drop accept. Anything else is almost
-/// certainly not a document worth parsing.
-const READABLE_EXTENSIONS: [&str; 9] = [
-    "md", "markdown", "mdx", "txt", "text", "rst", "adoc", "org", "sh",
-];
-
-/// A file bigger than this is not a cheat sheet, and parsing it would freeze
-/// the window for no good reason.
-const MAX_FILE_BYTES: u64 = 4 * 1024 * 1024;
-
-/// A document the user picked, read here so the webview never needs filesystem
-/// access of its own.
-#[derive(Debug, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ImportDocument {
-    pub name: Option<String>,
-    pub content: String,
-}
-
 #[tauri::command]
 pub fn read_import_document(path: String) -> AppResult<ImportDocument> {
-    Ok(ImportDocument {
-        name: Path::new(&path)
-            .file_name()
-            .map(|name| name.to_string_lossy().to_string()),
-        content: read_document(&path)?,
-    })
+    read_file(&path)
 }
 
 #[tauri::command]
@@ -53,12 +29,9 @@ pub fn preview_import_text(
 
 #[tauri::command]
 pub fn preview_import_file(db: State<'_, Database>, path: String) -> AppResult<ImportPreview> {
-    let content = read_document(&path)?;
-    let name = Path::new(&path)
-        .file_name()
-        .map(|name| name.to_string_lossy().to_string());
+    let file = read_file(&path)?;
 
-    db.with(|conn| import::preview(conn, &content, name.as_deref()))
+    db.with(|conn| import::preview(conn, &file.content, file.name.as_deref()))
 }
 
 /// Recalculates one snippet after the user edits, splits, or merges it.
@@ -76,21 +49,17 @@ pub fn import_commands(
     library::import_commands(&db, &DesktopEvents(app), items)
 }
 
-fn read_document(path: &str) -> AppResult<String> {
+/// Reads a document off the local disk. What makes a file readable is decided
+/// in core, so the desktop app and the server refuse the same file the same
+/// way. Only the parts that need a real path are here.
+fn read_file(path: &str) -> AppResult<ImportDocument> {
     let path = Path::new(path);
+    let name = path
+        .file_name()
+        .map(|name| name.to_string_lossy().to_string());
 
-    let extension = path
-        .extension()
-        .map(|value| value.to_string_lossy().to_lowercase())
-        .unwrap_or_default();
-
-    // README and LICENSE style files have no extension at all, which is fine.
-    if !extension.is_empty() && !READABLE_EXTENSIONS.contains(&extension.as_str()) {
-        return Err(AppError::invalid(format!(
-            "Command Center reads text and Markdown files. \"{}\" is a .{} file.",
-            path.file_name().unwrap_or_default().to_string_lossy(),
-            extension
-        )));
+    if let Some(name) = name.as_deref() {
+        document::check_name(name)?;
     }
 
     let metadata = std::fs::metadata(path)
@@ -100,15 +69,11 @@ fn read_document(path: &str) -> AppResult<String> {
         return Err(AppError::invalid("That is a folder, not a document"));
     }
 
-    if metadata.len() > MAX_FILE_BYTES {
-        return Err(AppError::invalid(
-            "That file is larger than 4 MB. Paste the part you want instead.",
-        ));
-    }
+    // Checked before the read so a huge file is refused rather than loaded.
+    document::check_size(metadata.len())?;
 
     let bytes = std::fs::read(path)
         .map_err(|error| AppError::invalid(format!("Could not read that file: {error}")))?;
 
-    String::from_utf8(bytes)
-        .map_err(|_| AppError::invalid("That file is not text Command Center can read"))
+    document::from_bytes(name, bytes)
 }
