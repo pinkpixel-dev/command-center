@@ -9,8 +9,9 @@
 services:
   command-center:
     image: pinkpixeldev/command-center:latest
-    # Swap the image line for this to build from a checkout instead.
-    # build: .
+    # With both of these, a checkout builds the image and a published tag is
+    # pulled. Run `docker compose build` to rebuild after changing anything.
+    build: .
     container_name: command-center
     restart: unless-stopped
     ports:

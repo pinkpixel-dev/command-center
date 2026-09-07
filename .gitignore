@@ -13,6 +13,9 @@ dist-web
 dist-ssr
 *.local
 
+# Local secrets. docker compose reads this automatically.
+.env
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
