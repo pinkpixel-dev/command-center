@@ -118,12 +118,6 @@ impl AppError {
     }
 }
 
-impl From<tauri::Error> for AppError {
-    fn from(value: tauri::Error) -> Self {
-        Self::Runtime(value.to_string())
-    }
-}
-
 #[derive(Debug, Serialize)]
 pub struct SerializedError {
     kind: &'static str,

@@ -34,3 +34,6 @@ CLAUDE.md
 
 # Other
 DOCS/
+
+# Cargo (workspace target directory)
+/target/

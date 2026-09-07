@@ -8,8 +8,9 @@
 use std::sync::Arc;
 
 use serde::Serialize;
-use tauri::async_runtime::{channel, spawn};
 use tauri::State;
+use tokio::spawn;
+use tokio::sync::mpsc::channel;
 
 use crate::ai::conversion::{self, ConversionRequest, ShellConversion, TargetShell};
 use crate::ai::providers::{self, codex::service::CodexService};

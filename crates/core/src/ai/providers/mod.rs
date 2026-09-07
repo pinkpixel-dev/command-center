@@ -113,7 +113,7 @@ pub async fn resolve(
     match provider {
         AiProvider::OpenaiApi => {
             let credentials = ai.credentials.clone();
-            let api_key = tauri::async_runtime::spawn_blocking(move || credentials.load())
+            let api_key = tokio::task::spawn_blocking(move || credentials.load())
                 .await
                 .map_err(|_| {
                     AppError::credential("The operating system credential manager stopped.")
@@ -186,7 +186,7 @@ impl AiProvider {
     pub fn is_available_on_this_platform(self) -> bool {
         match self {
             Self::OpenaiApi => true,
-            Self::ChatgptCodex => cfg!(desktop),
+            Self::ChatgptCodex => crate::IS_DESKTOP,
         }
     }
 }
@@ -280,8 +280,8 @@ mod tests {
         assert!(AiProvider::OpenaiApi.is_available_on_this_platform());
     }
 
-    #[cfg(desktop)]
     #[test]
+    #[cfg(not(any(target_os = "android", target_os = "ios")))]
     fn codex_is_available_on_desktop() {
         assert!(AiProvider::ChatgptCodex.is_available_on_this_platform());
     }

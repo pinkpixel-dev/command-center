@@ -1,0 +1,27 @@
+[package]
+name = "command-center-core"
+# Kept in step with the root package.json, which is the source of truth. This
+# is what the OpenAI User-Agent header reports.
+version = "1.1.0"
+description = "Shared library core for Command Center: storage, import, export, and AI providers"
+authors = ["Pink Pixel <admin@pinkpixel.dev>"]
+edition = "2021"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rusqlite = { version = "0.32", features = ["bundled"] }
+chrono = { version = "0.4", features = ["serde"] }
+regex = "1"
+thiserror = "2"
+sha2 = "0.10"
+keyring = "4.1"
+reqwest = { version = "0.13", default-features = false, features = ["json", "rustls"] }
+# The Codex process and its JSON-RPC connection need child processes,
+# timeouts, and channels. The desktop app gets the same runtime through
+# Tauri, which is built on tokio.
+tokio = { version = "1", features = ["process", "io-util", "sync", "time", "rt"] }
+
+[dev-dependencies]
+tempfile = "3"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }

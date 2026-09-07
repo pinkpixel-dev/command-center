@@ -6,8 +6,9 @@
 
 use std::sync::Arc;
 
-use tauri::async_runtime::{channel, spawn};
 use tauri::State;
+use tokio::spawn;
+use tokio::sync::mpsc::channel;
 
 use crate::ai::diagnosis::{self, ErrorAnalysis};
 use crate::ai::disclosure::{self, OutboundPlan};

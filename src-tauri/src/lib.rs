@@ -1,15 +1,12 @@
-pub mod ai;
-pub mod db;
 #[cfg(desktop)]
 pub mod desktop;
-pub mod error;
-pub mod export;
-pub mod import;
 pub mod ipc;
-pub mod models;
-pub mod normalize;
 pub mod recovery;
-pub mod risk;
+
+// The shared core lives in its own crate so the self-hosted server can build
+// on it too. Re-exported here so the desktop code keeps referring to
+// `crate::db`, `crate::ai`, and the rest by their original paths.
+pub use command_center_core::{ai, db, error, export, import, models, normalize, risk};
 
 use std::path::PathBuf;
 

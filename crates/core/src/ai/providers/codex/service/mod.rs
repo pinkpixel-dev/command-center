@@ -84,7 +84,7 @@ impl CodexService {
     /// Resolves Codex, reusing the cached result. Settings calls
     /// [`Self::refresh`] when the user asks for a retry or changes the path.
     pub async fn availability(&self, saved_path: Option<&str>) -> CodexAvailability {
-        if !cfg!(desktop) {
+        if !crate::IS_DESKTOP {
             return CodexAvailability::UnsupportedPlatform;
         }
 

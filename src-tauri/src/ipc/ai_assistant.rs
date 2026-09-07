@@ -7,8 +7,9 @@
 use std::sync::Arc;
 
 use serde::Deserialize;
-use tauri::async_runtime::{channel, spawn};
 use tauri::State;
+use tokio::spawn;
+use tokio::sync::mpsc::channel;
 
 use crate::ai::assistant::{self, AssistantReply, AssistantRequest, EntryContext, Subject, Turn};
 use crate::ai::providers::{self, codex::service::CodexService};

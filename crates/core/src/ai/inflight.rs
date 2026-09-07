@@ -1,14 +1,15 @@
 //! Cancellation for assistant requests that are already on the wire.
 //!
-//! Tauri has no way to cancel an `invoke` from the frontend, so the network
-//! work runs in its own task and this registry keeps the handle. Cancelling
+//! A frontend request that is already on the wire cannot be called back, so
+//! the network work runs in its own task and this registry keeps the handle.
+//! Cancelling
 //! aborts that task, which drops the HTTP request rather than leaving it
 //! running and quietly billed while the user waits for nothing.
 
 use std::collections::HashMap;
 use std::sync::Mutex;
 
-use tauri::async_runtime::JoinHandle;
+use tokio::task::JoinHandle;
 
 use crate::error::{AppError, AppResult};
 
@@ -56,16 +57,16 @@ impl InFlight {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tauri::async_runtime::{block_on, channel, spawn, Sender};
+    use tokio::sync::mpsc::{channel, Receiver, Sender};
 
     /// A task that parks until it is aborted, plus the channel that proves it.
     /// `done` closes when the task is dropped, so the assertions are about what
     /// actually happened to the task rather than about timing.
-    fn parked_task() -> (JoinHandle<()>, Sender<()>, tauri::async_runtime::Receiver<()>) {
+    fn parked_task() -> (JoinHandle<()>, Sender<()>, Receiver<()>) {
         let (release, mut wait) = channel::<()>(1);
         let (done, closed) = channel::<()>(1);
 
-        let handle = spawn(async move {
+        let handle = tokio::spawn(async move {
             let _done = done;
             let _ = wait.recv().await;
         });
@@ -73,21 +74,21 @@ mod tests {
         (handle, release, closed)
     }
 
-    #[test]
-    fn cancelling_aborts_the_request_and_reports_that_it_did() {
+    #[tokio::test]
+    async fn cancelling_aborts_the_request_and_reports_that_it_did() {
         let inflight = InFlight::default();
         let (handle, _release, mut closed) = parked_task();
 
         inflight.register(1, handle).unwrap();
         assert!(inflight.cancel(1).unwrap());
-        assert_eq!(block_on(closed.recv()), None, "the task was dropped");
+        assert_eq!(closed.recv().await, None, "the task was dropped");
 
         // The panel can send Cancel after the answer already arrived.
         assert!(!inflight.cancel(1).unwrap());
     }
 
-    #[test]
-    fn finishing_leaves_nothing_to_cancel_and_aborts_nothing() {
+    #[tokio::test]
+    async fn finishing_leaves_nothing_to_cancel_and_aborts_nothing() {
         let inflight = InFlight::default();
         let (handle, release, mut closed) = parked_task();
 
@@ -96,12 +97,12 @@ mod tests {
         assert!(!inflight.cancel(2).unwrap());
 
         // Still alive: it ends when its own work does, not when it is forgotten.
-        block_on(release.send(())).unwrap();
-        assert_eq!(block_on(closed.recv()), None);
+        release.send(()).await.unwrap();
+        assert_eq!(closed.recv().await, None);
     }
 
-    #[test]
-    fn reusing_an_id_abandons_nothing_still_running() {
+    #[tokio::test]
+    async fn reusing_an_id_abandons_nothing_still_running() {
         let inflight = InFlight::default();
         let (first, _first_release, mut first_closed) = parked_task();
         let (second, _second_release, _) = parked_task();
@@ -109,12 +110,12 @@ mod tests {
         inflight.register(3, first).unwrap();
         inflight.register(3, second).unwrap();
 
-        assert_eq!(block_on(first_closed.recv()), None, "the orphan was aborted");
+        assert_eq!(first_closed.recv().await, None, "the orphan was aborted");
         assert!(inflight.cancel(3).unwrap(), "the newer request is the live one");
     }
 
-    #[test]
-    fn requests_are_tracked_separately() {
+    #[tokio::test]
+    async fn requests_are_tracked_separately() {
         let inflight = InFlight::default();
         let (first, _first_release, _) = parked_task();
         let (second, _second_release, mut second_closed) = parked_task();
@@ -123,7 +124,7 @@ mod tests {
         inflight.register(5, second).unwrap();
 
         assert!(inflight.cancel(5).unwrap());
-        assert_eq!(block_on(second_closed.recv()), None);
+        assert_eq!(second_closed.recv().await, None);
         assert!(inflight.cancel(4).unwrap(), "the other request was untouched");
     }
 }
