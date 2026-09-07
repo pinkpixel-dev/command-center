@@ -10,6 +10,11 @@
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "resolveJsonModule": true,
+
+    /* The platform implementation Vite swaps at build time. Typechecking uses
+       the desktop one; `ipc-http.ts` is checked against the same interface
+       because it is compiled either way. */
+    "paths": { "@platform": ["./src/lib/ipc-tauri.ts"] },
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",

@@ -1,6 +1,6 @@
-import { invoke } from "@tauri-apps/api/core";
+import { platform } from "./platform";
 
-import type { AiImportPlan, ImportDocument } from "./ai-import";
+import type { AiImportPlan } from "./ai-import";
 import type {
   ImportItem,
   ImportPreview,
@@ -33,13 +33,12 @@ import type {
   TargetShell,
 } from "./types";
 
-/** Event names the Rust side emits. */
-export const LIBRARY_CHANGED = "library-changed";
-export const SETTINGS_CHANGED = "settings-changed";
+export { LIBRARY_CHANGED, SETTINGS_CHANGED } from "./events";
 
 /**
- * Rejected invokes arrive as `{ kind, message }`. Anything else (a panic, a
- * missing command) is wrapped so callers only ever handle one shape.
+ * Rejected calls arrive as `{ kind, message }` from both platforms. Anything
+ * else (a panic, a missing command) is wrapped so callers only ever handle one
+ * shape.
  */
 export function toAppError(error: unknown): AppErrorPayload {
   if (
@@ -59,7 +58,7 @@ export function toAppError(error: unknown): AppErrorPayload {
 
 async function call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
   try {
-    return await invoke<T>(command, args);
+    return await platform.call<T>(command, args);
   } catch (error) {
     throw toAppError(error);
   }
@@ -88,7 +87,6 @@ export const api = {
     call<Collection[]>("update_collection", { id, input }),
   deleteCollection: (id: number) => call<Collection[]>("delete_collection", { id }),
 
-  readImportDocument: (path: string) => call<ImportDocument>("read_import_document", { path }),
   prepareAiImport: (content: string) => call<AiImportPlan>("prepare_ai_import", { content }),
   runAiImport: (content: string, sourceName?: string | null) =>
     call<ImportPreview>("run_ai_import", { content, sourceName: sourceName ?? null }),
@@ -132,10 +130,7 @@ export const api = {
   convertCommandShell: (requestId: number, commandId: number, targetShell: TargetShell) =>
     call<ShellConversion>("convert_command_shell", { requestId, commandId, targetShell }),
 
+  // The three commands that produce a file are not here: each platform names
+  // the destination its own way, so they live behind `platform` instead.
   libraryLocation: () => call<string>("library_location"),
-  exportLibraryMarkdown: (destination: string) =>
-    call<string>("export_library_markdown", { destination }),
-  exportCollectionMarkdown: (collectionId: number, destination: string) =>
-    call<string>("export_collection_markdown", { collectionId, destination }),
-  backupLibrary: (destination: string) => call<string>("backup_library", { destination }),
 };

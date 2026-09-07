@@ -41,7 +41,7 @@ export function ImportView({
         <ImportSource
           busy={session.busy}
           initialText={session.pending?.sourceName ? "" : (session.pending?.content ?? "")}
-          onReadFile={(path) => void session.prepareFile(path)}
+          onReadFile={(read) => void session.prepareFile(read)}
           onReadText={(content) => void session.prepareText(content)}
         />
       )}

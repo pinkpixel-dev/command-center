@@ -1,9 +1,8 @@
 import { useEffect, useState } from "react";
-import { openUrl } from "@tauri-apps/plugin-opener";
-
 import { APP_NAME, APP_VERSION, MAKER, MAKER_URL, GITHUB_URL, SUPPORT_EMAIL } from "../lib/app-info";
 import { api, toAppError } from "../lib/ipc";
 import { backupLibraryDatabase, exportLibraryMarkdown } from "../lib/library-files";
+import { platform } from "../lib/platform";
 import type {
   AppSettings,
   CommandViewMode,
@@ -199,7 +198,7 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
               <button
                 type="button"
                 className="link-button"
-                onClick={() => void openUrl(MAKER_URL)}
+                onClick={() => void platform.openUrl(MAKER_URL)}
               >
                 {MAKER}
               </button>
@@ -211,7 +210,7 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
               <button
                 type="button"
                 className="link-button"
-                onClick={() => void openUrl(SUPPORT_EMAIL)}
+                onClick={() => void platform.openUrl(SUPPORT_EMAIL)}
               >
                 {SUPPORT_EMAIL}
               </button>
@@ -223,7 +222,7 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
               <button
                 type="button"
                 className="link-button"
-                onClick={() => void openUrl(GITHUB_URL)}
+                onClick={() => void platform.openUrl(GITHUB_URL)}
               >
                 {GITHUB_URL}
               </button>

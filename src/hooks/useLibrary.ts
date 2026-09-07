@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { listen } from "@tauri-apps/api/event";
-
 import { api, LIBRARY_CHANGED, toAppError } from "../lib/ipc";
+import { platform } from "../lib/platform";
 import type { Collection, CommandEntry, LibraryStats, ListQuery, Tag } from "../lib/types";
 
 const EMPTY_STATS: LibraryStats = { total: 0, favorites: 0, scripts: 0, recent: 0 };
@@ -68,12 +67,9 @@ export function useLibrary(filter: ListQuery): LibraryData {
 
   // Follow writes announced by the backend, including dormant import work.
   useEffect(() => {
-    const unlisten = listen(LIBRARY_CHANGED, () => {
+    return platform.subscribe(LIBRARY_CHANGED, () => {
       void load();
     });
-    return () => {
-      void unlisten.then((stop) => stop());
-    };
   }, [load]);
 
   return useMemo(

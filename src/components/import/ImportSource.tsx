@@ -1,21 +1,17 @@
 import { useEffect, useRef, useState } from "react";
-import { getCurrentWebview } from "@tauri-apps/api/webview";
-import { open } from "@tauri-apps/plugin-dialog";
 import { FileText, FolderOpen, ScanLine } from "lucide-react";
 
+import { platform } from "../../lib/platform";
+import type { ImportDocumentReader } from "../../lib/platform";
 import { Button } from "../ui/Button";
 
 export interface ImportSourceProps {
   busy: boolean;
   /** Restores the pasted text when the user backs out of the disclosure step. */
   initialText?: string;
-  onReadFile: (path: string) => void;
+  onReadFile: (read: ImportDocumentReader) => void;
   onReadText: (content: string) => void;
 }
-
-const FILE_FILTERS = [
-  { name: "Documents", extensions: ["md", "markdown", "mdx", "txt", "text", "rst", "adoc", "org"] },
-];
 
 /** Step one: get a document in. Drop it, pick it, or paste it. */
 export function ImportSource({
@@ -33,38 +29,29 @@ export function ImportSource({
   const readFileRef = useRef(onReadFile);
   readFileRef.current = onReadFile;
 
-  // Tauri reports drops at the window level, so this listener lives with the
-  // only screen that wants them.
-  useEffect(() => {
-    const pending = getCurrentWebview().onDragDropEvent((event) => {
-      if (event.payload.type === "over") {
-        setHovering(true);
-        return;
-      }
-      if (event.payload.type === "drop") {
-        setHovering(false);
-        const [first] = event.payload.paths;
-        if (first) {
-          setDropError(null);
-          readFileRef.current(first);
-        } else {
-          setDropError("That drop did not contain a file");
-        }
-        return;
-      }
-      setHovering(false);
-    });
-
-    return () => {
-      void pending.then((stop) => stop());
-    };
-  }, []);
+  // Drops are watched at the window level on both platforms, so this
+  // subscription lives with the only screen that wants them.
+  useEffect(
+    () =>
+      platform.watchFileDrops({
+        onOver: () => setHovering(true),
+        onLeave: () => setHovering(false),
+        onDrop: (read) => {
+          setHovering(false);
+          if (read) {
+            setDropError(null);
+            readFileRef.current(read);
+          } else {
+            setDropError("That drop did not contain a file");
+          }
+        },
+      }),
+    [],
+  );
 
   const pickFile = async () => {
-    const selected = await open({ multiple: false, directory: false, filters: FILE_FILTERS });
-    if (typeof selected === "string") {
-      onReadFile(selected);
-    }
+    const read = await platform.chooseImportDocument();
+    if (read) onReadFile(read);
   };
 
   return (

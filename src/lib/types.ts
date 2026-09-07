@@ -331,6 +331,9 @@ export interface AssistantAsk {
 /** Shape of a rejected `invoke` call. */
 export interface AppErrorPayload {
   kind:
+    // Everything below "network" is a kind the Rust side names. "network" is
+    // the web client's own: the server could not be reached at all.
+    | "network"
     | "database"
     | "invalid"
     | "not_found"

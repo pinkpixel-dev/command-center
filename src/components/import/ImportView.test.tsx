@@ -15,7 +15,6 @@ vi.mock("../../lib/ipc", async (importOriginal) => {
       ...original.api,
       prepareAiImport: vi.fn(),
       runAiImport: vi.fn(),
-      readImportDocument: vi.fn(),
       analyzeSnippet: vi.fn(),
       importCommands: vi.fn(),
     },
@@ -26,7 +25,7 @@ vi.mock("@tauri-apps/api/webview", () => ({
   getCurrentWebview: () => ({ onDragDropEvent: async () => () => {} }),
 }));
 
-vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn() }));
+vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn(), save: vi.fn() }));
 
 const plan: AiImportPlan = {
   documentBytes: 120,

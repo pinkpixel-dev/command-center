@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { listen } from "@tauri-apps/api/event";
-
 import { api, SETTINGS_CHANGED, toAppError } from "../lib/ipc";
+import { platform } from "../lib/platform";
 import type { AppSettings, ThemePreference } from "../lib/types";
 
 export const DEFAULT_SETTINGS: AppSettings = {
@@ -49,12 +48,9 @@ export function useSettings(): SettingsState {
 
   // Keep the current window in sync with settings saved elsewhere.
   useEffect(() => {
-    const unlisten = listen<AppSettings>(SETTINGS_CHANGED, (event) => {
-      setSettings(event.payload);
+    return platform.subscribe<AppSettings>(SETTINGS_CHANGED, (updated) => {
+      setSettings(updated);
     });
-    return () => {
-      void unlisten.then((stop) => stop());
-    };
   }, []);
 
   const save = useCallback(async (next: AppSettings) => {

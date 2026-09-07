@@ -15,6 +15,7 @@ import type {
 } from "../lib/import";
 import type { AiImportPlan } from "../lib/ai-import";
 import { api, toAppError } from "../lib/ipc";
+import type { ImportDocumentReader } from "../lib/platform";
 
 export type ImportStage = "source" | "disclose" | "review" | "done";
 
@@ -37,7 +38,7 @@ export interface ImportSession {
 
   /** Reads a document and builds the outbound-request summary. Local only. */
   prepareText: (content: string) => Promise<void>;
-  prepareFile: (path: string) => Promise<void>;
+  prepareFile: (read: ImportDocumentReader) => Promise<void>;
   /** The one action that sends the document to OpenAI. */
   send: () => Promise<void>;
   cancelSend: () => void;
@@ -89,9 +90,9 @@ export function useImportSession(defaultCollectionIds: number[] = []): ImportSes
   );
 
   const prepareFile = useCallback(
-    (path: string) =>
+    (read: ImportDocumentReader) =>
       prepare(async () => {
-        const document = await api.readImportDocument(path);
+        const document = await read();
         return { content: document.content, sourceName: document.name };
       }),
     [prepare],

@@ -1,8 +1,7 @@
 import { useCallback } from "react";
-import { openUrl } from "@tauri-apps/plugin-opener";
-
 import { copyToClipboard } from "../lib/clipboard";
 import { api, toAppError } from "../lib/ipc";
+import { platform } from "../lib/platform";
 import type { CommandEntry, CommandInput } from "../lib/types";
 import { useToast } from "../components/ui/Toast";
 
@@ -80,7 +79,7 @@ export function useCommandActions(refresh: () => Promise<void>): CommandActions 
   const openSource = useCallback(
     async (url: string) => {
       try {
-        await openUrl(url);
+        await platform.openUrl(url);
       } catch (caught) {
         notify(toAppError(caught).message, "error");
       }
