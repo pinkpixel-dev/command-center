@@ -8,9 +8,10 @@ use tauri::{AppHandle, State};
 
 use crate::db::Database;
 use crate::error::{AppError, AppResult};
+use crate::events::DesktopEvents;
 use crate::import::apply::{ImportItem, ImportSummary};
 use crate::import::{self, ImportPreview, SnippetAnalysis};
-use crate::ipc::library::announce_change;
+use crate::library;
 
 /// Extensions the file picker and drag-drop accept. Anything else is almost
 /// certainly not a document worth parsing.
@@ -72,11 +73,7 @@ pub fn import_commands(
     db: State<'_, Database>,
     items: Vec<ImportItem>,
 ) -> AppResult<ImportSummary> {
-    let summary = db.with_mut(|conn| import::apply::run(conn, items))?;
-    if summary.touched() > 0 {
-        announce_change(&app);
-    }
-    Ok(summary)
+    library::import_commands(&db, &DesktopEvents(app), items)
 }
 
 fn read_document(path: &str) -> AppResult<String> {

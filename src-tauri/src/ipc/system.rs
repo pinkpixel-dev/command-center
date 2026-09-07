@@ -2,14 +2,13 @@
 
 use std::path::PathBuf;
 
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, State};
 
 use crate::db::settings::{self, AppSettings};
 use crate::db::Database;
 use crate::error::{AppError, AppResult};
-
-/// Fired when settings change so every open window can react (theme, mostly).
-pub const SETTINGS_CHANGED: &str = "settings-changed";
+use crate::events::DesktopEvents;
+use crate::library;
 
 #[tauri::command]
 pub fn get_settings(app: AppHandle, db: State<'_, Database>) -> AppResult<AppSettings> {
@@ -50,10 +49,7 @@ pub fn save_settings(
         })?;
     }
 
-    let saved = db.with(|conn| settings::save(conn, settings_input))?;
-
-    let _ = app.emit(SETTINGS_CHANGED, &saved);
-    Ok(saved)
+    library::save_settings(&db, &DesktopEvents(app), settings_input)
 }
 
 /// Where the library file lives, shown in Settings so the file is findable.

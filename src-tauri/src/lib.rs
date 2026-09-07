@@ -1,12 +1,15 @@
 #[cfg(desktop)]
 pub mod desktop;
+pub mod events;
 pub mod ipc;
 pub mod recovery;
 
 // The shared core lives in its own crate so the self-hosted server can build
 // on it too. Re-exported here so the desktop code keeps referring to
 // `crate::db`, `crate::ai`, and the rest by their original paths.
-pub use command_center_core::{ai, db, error, export, import, models, normalize, risk};
+pub use command_center_core::{
+    ai, db, error, export, import, library, models, normalize, risk, workflows,
+};
 
 use std::path::PathBuf;
 
@@ -66,7 +69,7 @@ pub fn run() {
         .setup(|app| {
             let handle = app.handle().clone();
             let database = recovery::open_library(&handle, library_path(&handle)?)?;
-            let ai_service = ai::AiService::new()?;
+            let ai_service = ai::AiService::new(std::sync::Arc::new(ai::KeyringCredentials))?;
             let app_data_dir = handle.path().app_data_dir().map_err(|err| {
                 AppError::runtime(format!("could not resolve app data directory: {err}"))
             })?;

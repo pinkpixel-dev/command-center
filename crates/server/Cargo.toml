@@ -1,0 +1,30 @@
+[package]
+name = "command-center-server"
+# Kept in step with the root package.json, which is the source of truth.
+version = "1.1.0"
+description = "Self-hosted Command Center: the same library, served over HTTP"
+authors = ["Pink Pixel <admin@pinkpixel.dev>"]
+edition = "2021"
+
+[lib]
+name = "command_center_server"
+path = "src/lib.rs"
+
+[[bin]]
+name = "command-center-server"
+path = "src/main.rs"
+
+[dependencies]
+command-center-core = { path = "../core" }
+axum = "0.8"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+# `signal` is what makes a container stop cleanly, which matters because Codex
+# is a child process that has to be shut down with the server.
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "sync"] }
+# Turns the broadcast receiver behind the event feed into a stream axum can
+# serve as SSE.
+tokio-stream = { version = "0.1", features = ["sync"] }
+
+[dev-dependencies]
+tempfile = "3"

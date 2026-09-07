@@ -3,7 +3,7 @@
 pub mod assistant;
 pub(crate) mod client;
 pub mod conversion;
-mod credentials;
+pub mod credentials;
 pub mod diagnosis;
 pub mod disclosure;
 pub mod explanation;
@@ -16,7 +16,7 @@ pub mod redaction;
 mod transport;
 
 pub use client::{AiConnectionResult, OpenAiClient, StructuredCall};
-pub use credentials::CredentialStore;
+pub use credentials::{CredentialStore, KeyringCredentials};
 pub use inflight::InFlight;
 pub use proposal::CommandProposal;
 
@@ -88,16 +88,19 @@ pub fn normalize_model_id(value: &str) -> Option<String> {
 
 pub struct AiService {
     pub client: OpenAiClient,
-    pub credentials: CredentialStore,
+    /// Where the OpenAI API key lives. The desktop app hands over the
+    /// operating system credential manager; the server hands over its
+    /// environment.
+    pub credentials: std::sync::Arc<dyn CredentialStore>,
     /// Assistant requests that can still be cancelled.
     pub inflight: InFlight,
 }
 
 impl AiService {
-    pub fn new() -> crate::error::AppResult<Self> {
+    pub fn new(credentials: std::sync::Arc<dyn CredentialStore>) -> crate::error::AppResult<Self> {
         Ok(Self {
             client: OpenAiClient::new()?,
-            credentials: CredentialStore,
+            credentials,
             inflight: InFlight::default(),
         })
     }

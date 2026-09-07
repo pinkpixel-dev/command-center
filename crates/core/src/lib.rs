@@ -8,11 +8,14 @@
 pub mod ai;
 pub mod db;
 pub mod error;
+pub mod events;
 pub mod export;
 pub mod import;
+pub mod library;
 pub mod models;
 pub mod normalize;
 pub mod risk;
+pub mod workflows;
 
 /// True on any build that can spawn a child process, which means every target
 /// except Android and iOS.

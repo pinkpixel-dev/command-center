@@ -197,7 +197,8 @@ mod tests {
     use crate::db::settings::AppSettings;
 
     fn service() -> AiService {
-        AiService::new().expect("the AI service should build")
+        AiService::new(Arc::new(crate::ai::KeyringCredentials))
+            .expect("the AI service should build")
     }
 
     fn codex_service() -> Arc<CodexService> {
