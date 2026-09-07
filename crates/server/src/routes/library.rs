@@ -2,7 +2,7 @@
 
 use axum::extract::State;
 use axum::routing::post;
-use axum::{Json, Router};
+use axum::Router;
 use serde::Deserialize;
 
 use command_center_core::db::query::ListQuery;
@@ -15,6 +15,7 @@ use command_center_core::models::{
 };
 
 use crate::error::{ok, ApiResult};
+use crate::json::Json;
 use crate::state::AppState;
 
 pub fn routes() -> Router<AppState> {

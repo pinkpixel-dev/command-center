@@ -7,6 +7,7 @@ use command_center_core::ai::{AiService, CredentialStore};
 use command_center_core::db::Database;
 use command_center_core::error::AppResult;
 
+use crate::auth::Auth;
 use crate::config::Config;
 use crate::events::BroadcastEvents;
 
@@ -18,6 +19,7 @@ pub struct AppState {
     pub ai: Arc<AiService>,
     pub codex: Arc<CodexService>,
     pub events: Arc<BroadcastEvents>,
+    pub auth: Arc<Auth>,
     pub config: Config,
 }
 
@@ -25,6 +27,7 @@ impl AppState {
     pub fn new(
         config: Config,
         credentials: Arc<dyn CredentialStore>,
+        auth: Arc<Auth>,
         app_version: &str,
     ) -> AppResult<Self> {
         let db = Database::open(config.library_path())?;
@@ -37,6 +40,7 @@ impl AppState {
             ai: Arc::new(AiService::new(credentials)?),
             codex: Arc::new(codex),
             events: Arc::new(BroadcastEvents::default()),
+            auth,
             config,
         })
     }

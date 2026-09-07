@@ -18,15 +18,21 @@ import "./styles/explanation.css";
 import "./styles/assistant.css";
 import "./styles/diagnosis.css";
 import "./styles/bulk.css";
+import "./styles/signin.css";
 import "./styles/polish.css";
 
 import App from "./App";
+import { AuthGate } from "./components/AuthGate";
 import { ToastProvider } from "./components/ui/Toast";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <ToastProvider>
-      <App />
+      {/* On the desktop this renders App and nothing else. On the server it
+          holds the library back until there is a session. */}
+      <AuthGate>
+        <App />
+      </AuthGate>
     </ToastProvider>
   </React.StrictMode>,
 );

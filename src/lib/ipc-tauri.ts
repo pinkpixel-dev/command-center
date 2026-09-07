@@ -70,6 +70,9 @@ function bridge(pending: Promise<UnlistenFn>): () => void {
 }
 
 export const platform: Platform = {
+  // Nothing to sign in to. The library is a file this user already owns.
+  auth: null,
+
   call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
     return invoke<T>(command, args);
   },

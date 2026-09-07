@@ -1,6 +1,6 @@
 import { LIBRARY_CHANGED } from "./events";
 import type { ImportDocument } from "./ai-import";
-import type { DropHandlers, ImportDocumentReader, Platform } from "./platform";
+import type { Auth, DropHandlers, ImportDocumentReader, Platform } from "./platform";
 import type { AppErrorPayload, Collection } from "./types";
 
 /**
@@ -106,8 +106,23 @@ function connect(): void {
     everConnected = true;
   });
 
+  // The browser retries a dropped connection on its own and only gives up
+  // when the server answered something other than a stream. That is almost
+  // always an expired session, so rather than guessing, this asks.
+  source.addEventListener("error", () => {
+    if (source.readyState !== EventSource.CLOSED) return;
+    disconnect();
+    void auth.status().then((active) => (active ? connect() : signedOut()));
+  });
+
   for (const event of listeners.keys()) attach(source, event);
   feed = source;
+}
+
+function disconnect(): void {
+  feed?.close();
+  feed = null;
+  everConnected = false;
 }
 
 function attach(source: EventSource, event: string): void {
@@ -121,6 +136,50 @@ function attach(source: EventSource, event: string): void {
     deliver(event, payload);
   });
 }
+
+// --- sessions ------------------------------------------------------------
+
+const signedOutHandlers = new Set<() => void>();
+
+/**
+ * Tells the app its session is gone, whichever request found out. The feed is
+ * closed first, because it would only reconnect into another refusal.
+ */
+function signedOut(): void {
+  disconnect();
+  for (const handler of signedOutHandlers) handler();
+}
+
+const auth: Auth = {
+  async status(): Promise<boolean> {
+    const state = await json<{ authenticated: boolean }>(await post("session"));
+    return state.authenticated;
+  },
+
+  async signIn(password: string): Promise<void> {
+    // The cookie the server sets on the way back is what every later request
+    // carries. Nothing about the password is kept here.
+    await json<{ authenticated: boolean }>(await post("login", { password }));
+  },
+
+  async signOut(): Promise<void> {
+    try {
+      await post("logout");
+    } finally {
+      // Locally signed out whatever the server said, because a browser that
+      // cannot reach the server should still stop showing the library. This
+      // also tells the gate, so the button that asked does not have to.
+      signedOut();
+    }
+  },
+
+  onSignedOut(handler: () => void): () => void {
+    signedOutHandlers.add(handler);
+    return () => {
+      signedOutHandlers.delete(handler);
+    };
+  },
+};
 
 // --- files ---------------------------------------------------------------
 
@@ -149,6 +208,7 @@ function readDocument(file: File): ImportDocumentReader {
     } catch {
       throw unreachable();
     }
+    if (response.status === 401) signedOut();
     return json<ImportDocument>(response);
   };
 }
@@ -164,6 +224,7 @@ function carriesFiles(event: DragEvent): boolean {
  */
 async function saveDownload(command: string, args?: Record<string, unknown>): Promise<string> {
   const response = await post(command, args);
+  if (response.status === 401) signedOut();
   if (!response.ok) throw await failure(response);
 
   const blob = await response.blob();
@@ -192,8 +253,15 @@ export function filenameFrom(header: string | null): string | null {
 }
 
 export const platform: Platform = {
+  auth,
+
   async call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
-    return json<T>(await post(command, args));
+    const response = await post(command, args);
+    // A session that expired, or a server that restarted and forgot it. The
+    // app has to be told before the caller turns this into a toast nobody can
+    // act on.
+    if (response.status === 401) signedOut();
+    return json<T>(response);
   },
 
   subscribe<T>(event: string, handler: (payload: T) => void): () => void {

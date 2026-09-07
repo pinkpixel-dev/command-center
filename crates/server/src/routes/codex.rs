@@ -7,7 +7,7 @@
 
 use axum::extract::State;
 use axum::routing::post;
-use axum::{Json, Router};
+use axum::Router;
 use serde::Deserialize;
 
 use command_center_core::ai::providers::codex::auth::{LoginMode, LoginPrompt, LoginStart};
@@ -16,6 +16,7 @@ use command_center_core::error::AppError;
 use command_center_core::workflows::codex::{self, CodexStatus};
 
 use crate::error::{ok, ApiError, ApiResult};
+use crate::json::Json;
 use crate::state::AppState;
 
 pub fn routes() -> Router<AppState> {
@@ -48,7 +49,7 @@ async fn start_codex_login(
     Json(body): Json<LoginBody>,
 ) -> ApiResult<LoginPrompt> {
     if !body.use_device_code {
-        return Err(ApiError(AppError::ai_auth(
+        return Err(ApiError::Core(AppError::ai_auth(
             "This server has no browser to open. Use the sign-in code option instead.",
         )));
     }
@@ -60,7 +61,7 @@ async fn start_codex_login(
     // returning a URL nobody asked for.
     if matches!(start, LoginStart::Browser { .. }) {
         let _ = codex::cancel_codex_login(&state.codex).await;
-        return Err(ApiError(AppError::ai_auth(
+        return Err(ApiError::Core(AppError::ai_auth(
             "Codex started a browser sign-in this server cannot complete. Update Codex and try again.",
         )));
     }

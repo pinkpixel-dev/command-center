@@ -3,6 +3,7 @@ import { APP_NAME, APP_VERSION, MAKER, MAKER_URL, GITHUB_URL, SUPPORT_EMAIL } fr
 import { api, toAppError } from "../lib/ipc";
 import { backupLibraryDatabase, exportLibraryMarkdown } from "../lib/library-files";
 import { platform } from "../lib/platform";
+import { useSession } from "../hooks/useSession";
 import type {
   AppSettings,
   CommandViewMode,
@@ -22,6 +23,9 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
   const [status, setStatus] = useState<{ tone: "ok" | "error"; message: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [fileAction, setFileAction] = useState<"export" | "backup" | null>(null);
+  // Only the self-hosted server has a session to end. On the desktop this is
+  // "notRequired" and the whole section below is skipped.
+  const { status: sessionStatus, signOut } = useSession();
   const [fileStatus, setFileStatus] = useState<{ tone: "ok" | "error"; message: string } | null>(
     null,
   );
@@ -161,6 +165,17 @@ export function SettingsPanel({ settings, onSave }: SettingsPanelProps) {
           </span>
         )}
       </section>
+
+      {sessionStatus !== "notRequired" && (
+        <section className="settings__section">
+          <h2>Session</h2>
+          <div className="settings__button-row">
+            <Button variant="secondary" onClick={() => void signOut()}>
+              Sign out
+            </Button>
+          </div>
+        </section>
+      )}
 
       <div className="settings__actions">
         <Button

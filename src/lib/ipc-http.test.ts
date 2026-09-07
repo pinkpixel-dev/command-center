@@ -122,6 +122,88 @@ describe("the web client", () => {
   });
 });
 
+describe("the web client's session", () => {
+  beforeEach(() => {
+    vi.stubGlobal("fetch", vi.fn());
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const auth = platform.auth!;
+
+  it("reports whether this browser is already signed in", async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ authenticated: true }));
+
+    await expect(auth.status()).resolves.toBe(true);
+    expect(vi.mocked(fetch).mock.calls[0][0]).toBe("/api/session");
+  });
+
+  /** The password goes out once. What comes back is a cookie, not a token
+   * this code has to hold on to. */
+  it("posts the password and keeps nothing", async () => {
+    vi.mocked(fetch).mockResolvedValue(jsonResponse({ authenticated: true }));
+
+    await auth.signIn("a good long password");
+
+    const [url, init] = vi.mocked(fetch).mock.calls[0];
+    expect(url).toBe("/api/login");
+    expect(init?.body).toBe(JSON.stringify({ password: "a good long password" }));
+  });
+
+  it("passes a refused password through as the server worded it", async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse({ kind: "unauthorized", message: "That password was not right." }, 401),
+    );
+
+    await expect(auth.signIn("wrong")).rejects.toEqual({
+      kind: "unauthorized",
+      message: "That password was not right.",
+    });
+  });
+
+  it("tells the app when any request finds the session gone", async () => {
+    const signedOut = vi.fn();
+    const stop = auth.onSignedOut(signedOut);
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse({ kind: "unauthorized", message: "Sign in" }, 401),
+    );
+
+    await expect(platform.call("library_stats")).rejects.toMatchObject({
+      kind: "unauthorized",
+    });
+    stop();
+
+    expect(signedOut).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops reporting to a listener that has gone away", async () => {
+    const signedOut = vi.fn();
+    auth.onSignedOut(signedOut)();
+    vi.mocked(fetch).mockResolvedValue(
+      jsonResponse({ kind: "unauthorized", message: "Sign in" }, 401),
+    );
+
+    await expect(platform.call("library_stats")).rejects.toMatchObject({ kind: "unauthorized" });
+
+    expect(signedOut).not.toHaveBeenCalled();
+  });
+
+  /** Somebody who asked to sign out has to end up signed out even if the
+   * request telling the server never arrives. */
+  it("signs out locally when the server cannot be reached", async () => {
+    const signedOut = vi.fn();
+    const stop = auth.onSignedOut(signedOut);
+    vi.mocked(fetch).mockRejectedValue(new TypeError("Failed to fetch"));
+
+    await expect(auth.signOut()).rejects.toMatchObject({ kind: "network" });
+    stop();
+
+    expect(signedOut).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("the download filename", () => {
   it("reads the name the server attached", () => {
     expect(filenameFrom('attachment; filename="command-center-docker.md"')).toBe(

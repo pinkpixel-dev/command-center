@@ -11,6 +11,23 @@ import { platform as implementation } from "@platform";
  */
 export type ImportDocumentReader = () => Promise<ImportDocument>;
 
+/**
+ * Signing in, on a platform that has a concept of it. The desktop app does
+ * not: the operating system already decided who is at the keyboard.
+ */
+export interface Auth {
+  /** Whether a session is already active. */
+  status: () => Promise<boolean>;
+  /** Rejects with `{ kind, message }` on a wrong password or a throttled one. */
+  signIn: (password: string) => Promise<void>;
+  signOut: () => Promise<void>;
+  /**
+   * Called when the server refuses a request for want of a session, which is
+   * what a restart or an expiry looks like from here. Returns the unsubscribe.
+   */
+  onSignedOut: (handler: () => void) => () => void;
+}
+
 /** What a drop target needs to know. Drops are watched at the window level. */
 export interface DropHandlers {
   onOver: () => void;
@@ -25,6 +42,9 @@ export interface DropHandlers {
  * and the server.
  */
 export interface Platform {
+  /** null on a platform with no sign-in, which is the desktop app. */
+  auth: Auth | null;
+
   /** Runs a backend command. Rejects with `{ kind, message }`. */
   call: <T>(command: string, args?: Record<string, unknown>) => Promise<T>;
   /** Subscribes to a backend event. Returns the unsubscribe. */

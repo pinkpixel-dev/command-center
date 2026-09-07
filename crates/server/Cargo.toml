@@ -17,6 +17,12 @@ path = "src/main.rs"
 [dependencies]
 command-center-core = { path = "../core" }
 axum = { version = "0.8", features = ["multipart"] }
+# Session tokens come from the operating system's generator and nowhere else.
+getrandom = "0.3"
+# The password is compared as a digest, in a fixed number of bytes, so how
+# long the check takes says nothing about how much of a guess was right.
+sha2 = "0.10"
+subtle = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # `signal` is what makes a container stop cleanly, which matters because Codex

@@ -5,22 +5,38 @@
 //! status code is for everything in between: proxies, logs, and whoever is
 //! reading them at two in the morning.
 
+use std::time::Duration;
+
+use axum::http::header::RETRY_AFTER;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use axum::Json;
+use serde::Serialize;
 
 use command_center_core::error::AppError;
 
-/// Wraps the core error so it can be returned straight from a handler. The
-/// wrapper exists because both the error and the response trait belong to
-/// other crates.
+/// What a handler can fail with. Most of it is core's error, wrapped because
+/// both the error and the response trait belong to other crates. The other two
+/// are the server's own: nothing in a local desktop app is ever unauthorised
+/// or asked to slow down.
 #[derive(Debug)]
-pub struct ApiError(pub AppError);
+pub enum ApiError {
+    Core(AppError),
+    Unauthorized(String),
+    RateLimited { message: String, retry_after: Duration },
+}
 
 impl From<AppError> for ApiError {
     fn from(error: AppError) -> Self {
-        Self(error)
+        Self::Core(error)
     }
+}
+
+/// The body every failure carries, whichever kind it is.
+#[derive(Serialize)]
+struct Body<'a> {
+    kind: &'a str,
+    message: &'a str,
 }
 
 /// A request the client abandoned. Not a standard code, but the one every
@@ -49,7 +65,31 @@ fn status_for(error: &AppError) -> StatusCode {
 
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
-        (status_for(&self.0), Json(&self.0)).into_response()
+        match self {
+            Self::Core(error) => (status_for(&error), Json(&error)).into_response(),
+            Self::Unauthorized(message) => (
+                StatusCode::UNAUTHORIZED,
+                Json(Body {
+                    kind: "unauthorized",
+                    message: &message,
+                }),
+            )
+                .into_response(),
+            Self::RateLimited {
+                message,
+                retry_after,
+            } => (
+                StatusCode::TOO_MANY_REQUESTS,
+                // Seconds, rounded up, so a wait shorter than a second still
+                // asks the client to wait rather than to retry immediately.
+                [(RETRY_AFTER, retry_after.as_secs().max(1).to_string())],
+                Json(Body {
+                    kind: "rate_limited",
+                    message: &message,
+                }),
+            )
+                .into_response(),
+        }
     }
 }
 
@@ -106,6 +146,39 @@ mod tests {
 
     /// The frontend reads `kind` and `message` and nothing else, so the body
     /// has to carry both whatever the status code says.
+    /// The frontend switches to the sign-in screen on this and nothing else,
+    /// so the kind matters as much as the status.
+    #[test]
+    fn a_missing_session_is_a_401_naming_itself() {
+        let response = ApiError::Unauthorized("Sign in".to_owned()).into_response();
+
+        assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
+    }
+
+    #[test]
+    fn a_throttled_login_says_how_long_to_wait() {
+        let response = ApiError::RateLimited {
+            message: "Wait 4 seconds".to_owned(),
+            retry_after: Duration::from_secs(4),
+        }
+        .into_response();
+
+        assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+        assert_eq!(response.headers().get(RETRY_AFTER).unwrap(), "4");
+    }
+
+    /// A sub-second wait still has to read as a wait.
+    #[test]
+    fn a_short_wait_rounds_up_rather_than_to_zero() {
+        let response = ApiError::RateLimited {
+            message: "Wait".to_owned(),
+            retry_after: Duration::from_millis(200),
+        }
+        .into_response();
+
+        assert_eq!(response.headers().get(RETRY_AFTER).unwrap(), "1");
+    }
+
     #[test]
     fn the_body_is_the_shape_the_frontend_already_parses() {
         let encoded = serde_json::to_value(AppError::not_found("command 7")).unwrap();

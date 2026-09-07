@@ -3,7 +3,7 @@
 
 use axum::extract::State;
 use axum::routing::post;
-use axum::{Json, Router};
+use axum::Router;
 use serde::Deserialize;
 
 use command_center_core::ai::assistant::AssistantReply;
@@ -19,6 +19,7 @@ use command_center_core::workflows::import::{self as ai_import, AiImportPlan};
 use command_center_core::workflows::status::{self, AiKeyStatus, AiStatus};
 
 use crate::error::{ok, ApiResult};
+use crate::json::Json;
 use crate::state::AppState;
 
 pub fn routes() -> Router<AppState> {

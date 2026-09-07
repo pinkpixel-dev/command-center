@@ -11,9 +11,11 @@ pub mod ai;
 pub mod codex;
 pub mod import;
 pub mod library;
+pub mod session;
 pub mod system;
 
 use axum::extract::State;
+use axum::middleware;
 use axum::response::sse::{Event, Sse};
 use axum::routing::get;
 use axum::{Json, Router};
@@ -21,6 +23,7 @@ use serde::Serialize;
 use std::convert::Infallible;
 use tokio_stream::Stream;
 
+use crate::auth;
 use crate::events;
 use crate::state::AppState;
 
@@ -34,16 +37,29 @@ pub struct Health {
 }
 
 pub fn router(state: AppState) -> Router {
-    let api = Router::new()
+    // Everything that reads or changes the library, behind the session guard.
+    let guarded = Router::new()
         .merge(library::routes())
         .merge(import::routes())
         .merge(system::routes())
         .merge(ai::routes())
         .merge(codex::routes())
         .route("/events", get(feed))
-        .route("/health", get(health));
+        .layer(middleware::from_fn_with_state(
+            state.clone(),
+            auth::require_session,
+        ));
 
-    Router::new().nest("/api", api).with_state(state)
+    // Health, so a container can be checked without a password, and the three
+    // sign-in routes, because a browser that has never signed in still has to
+    // be able to.
+    let open = Router::new()
+        .route("/health", get(health))
+        .merge(session::routes());
+
+    Router::new()
+        .nest("/api", open.merge(guarded))
+        .with_state(state)
 }
 
 /// The live feed the frontend subscribes to instead of Tauri's `listen`.

@@ -2,6 +2,7 @@
 
 use std::sync::Arc;
 
+use command_center_server::auth::Auth;
 use command_center_server::config::Config;
 use command_center_server::credentials::EnvCredentials;
 use command_center_server::routes;
@@ -17,10 +18,14 @@ async fn main() {
 
 async fn run() -> Result<(), String> {
     let config = Config::from_env()?;
+    // Read before the library is opened, so a server with no password
+    // configured stops before it has anything to serve.
+    let auth = Arc::new(Auth::from_env()?);
 
     let state = AppState::new(
         config.clone(),
         Arc::new(EnvCredentials),
+        auth,
         env!("CARGO_PKG_VERSION"),
     )
     .map_err(|error| format!("could not open the library: {error}"))?;
@@ -35,12 +40,6 @@ async fn run() -> Result<(), String> {
         config.library_path().display(),
         config.addr
     );
-    // Said plainly rather than buried, because the difference between a NAS
-    // and the open internet is one port forward.
-    eprintln!(
-        "warning: this server has no sign-in yet. Anything that can reach it can read and change the library. Keep it on a trusted network."
-    );
-
     let codex = state.codex.clone();
     let app = routes::router(state);
 
