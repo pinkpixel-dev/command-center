@@ -1,0 +1,13 @@
+# Everything the build makes for itself, and everything it has no use for.
+node_modules
+target
+dist
+dist-web
+.git
+.github
+DOCS
+screenshots
+output
+src-tauri/target
+src-tauri/gen
+*.md

@@ -1,0 +1,30 @@
+# Self-hosted Command Center.
+#
+# Set a password, pick where the data lives, and bring it up:
+#
+#   COMMAND_CENTER_PASSWORD='something long' docker compose up -d
+#
+# Then open http://<this machine>:8787 and sign in with that password.
+
+services:
+  command-center:
+    image: pinkpixeldev/command-center:latest
+    # Swap the image line for this to build from a checkout instead.
+    # build: .
+    container_name: command-center
+    restart: unless-stopped
+    ports:
+      - "8787:8787"
+    environment:
+      # Required. The server refuses to start without it.
+      COMMAND_CENTER_PASSWORD: ${COMMAND_CENTER_PASSWORD:?set a password of at least 8 characters}
+      # Optional, for the OpenAI provider. Codex signs in through the app
+      # instead and needs nothing here.
+      COMMAND_CENTER_OPENAI_API_KEY: ${COMMAND_CENTER_OPENAI_API_KEY:-}
+    volumes:
+      # One mount covers the library and the Codex login, because both sit
+      # under the data directory.
+      - command-center-data:/var/lib/command-center
+
+volumes:
+  command-center-data:

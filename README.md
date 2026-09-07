@@ -40,6 +40,23 @@ chmod +x ./*.AppImage
 Release assets are attached manually. If a platform build is not listed for a
 version, build it from source using the instructions below.
 
+## Run it on your own server instead
+
+Command Center also runs as a self-hosted server in Docker, so the same library
+is reachable from a browser on your phone or any machine on your network. It
+has all the same library features and both AI providers.
+
+```bash
+COMMAND_CENTER_PASSWORD='something long and yours' docker compose up -d
+```
+
+Then open `http://<that machine>:8787` and sign in.
+
+The desktop app and the server keep separate libraries. There is no sync
+between them, and the Markdown export and import is the only way to move things
+across. [DOCS/DOCKER.md](DOCS/DOCKER.md) covers configuration, password files,
+reverse proxies, and connecting a ChatGPT account without a browser.
+
 ## What Command Center does
 
 Command Center keeps commands, scripts, sequences, code snippets, configuration
@@ -214,15 +231,18 @@ AI actions only appear when AI is enabled and a key is stored.
 
 ## Where your data is
 
-The library is one SQLite file in the platform application-data directory:
+On the desktop, the library is one SQLite file in the platform
+application-data directory:
 
 - Linux: `~/.local/share/dev.pinkpixel.commandcenter/library.db`
 - macOS: `~/Library/Application Support/dev.pinkpixel.commandcenter/library.db`
 - Windows: `%APPDATA%\dev.pinkpixel.commandcenter\library.db`
 
-The exact path is shown under **Settings → About**. Use the built-in database
-backup action instead of copying a library while the app is writing to it. The
-backup checkpoints pending SQLite WAL data first.
+The exact path is shown under **Settings → About**. On the self-hosted server
+it is `library.db` inside the directory you mounted.
+
+Use the built-in database backup action instead of copying a library while the
+app is writing to it. The backup checkpoints pending SQLite WAL data first.
 
 ## Build from source
 

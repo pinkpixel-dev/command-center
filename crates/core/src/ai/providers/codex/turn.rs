@@ -67,6 +67,15 @@ pub fn agent_text(item: &Value) -> Option<String> {
 /// off disk, `cwd` points at an empty private directory, the sandbox is
 /// read-only, and the approval policy makes Codex ask before acting so the
 /// client can refuse.
+///
+/// This is deliberately not the same value as `approval_policy` in
+/// `CONFIG_OVERRIDES`. Codex 0.149.1 retired `untrusted` as a *config key*, so
+/// the startup flag had to become `never`. Over the wire it is still accepted,
+/// and it is stricter: it asks before running anything the exec policy does
+/// not already trust, and this client declines every ask. Keeping it here is
+/// what preserves that, so the startup flag is the backstop rather than the
+/// rule. If Codex retires it here too, the fallback is `never` and the
+/// read-only sandbox becomes the whole boundary.
 pub fn thread_params(model: &str, working_dir: &Path, instructions: &str) -> Value {
     json!({
         "ephemeral": true,
@@ -230,10 +239,10 @@ mod tests {
         assert_eq!(params["sandbox"], "read-only");
         assert_eq!(params["cwd"], "/app-data/work");
         assert_eq!(params["model"], "gpt-5.6-luna");
-        // "never" would mean never ask and always run, which is the opposite
-        // of what this needs.
+        // Still accepted over the wire on current Codex, and stricter than the
+        // `never` the startup flag has to use. See `thread_params` for why the
+        // two differ.
         assert_eq!(params["approvalPolicy"], "untrusted");
-        assert_ne!(params["approvalPolicy"], "never");
     }
 
     #[test]

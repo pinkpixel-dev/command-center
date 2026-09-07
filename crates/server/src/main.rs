@@ -7,6 +7,7 @@ use command_center_server::config::Config;
 use command_center_server::credentials::EnvCredentials;
 use command_center_server::routes;
 use command_center_server::state::AppState;
+use command_center_server::web;
 
 #[tokio::main]
 async fn main() {
@@ -41,7 +42,18 @@ async fn run() -> Result<(), String> {
         config.addr
     );
     let codex = state.codex.clone();
-    let app = routes::router(state);
+    let app = match &config.web_dir {
+        Some(dir) => {
+            println!("Serving the web interface from {}", dir.display());
+            web::serve(routes::router(state), dir)
+        }
+        None => {
+            // Normal in development, where Vite serves the frontend and
+            // proxies the API here. Said out loud so it is never a mystery.
+            println!("No web bundle found. Serving the API only.");
+            routes::router(state)
+        }
+    };
 
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())

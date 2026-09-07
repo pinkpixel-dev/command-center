@@ -15,3 +15,4 @@ pub mod json;
 pub mod routes;
 pub mod state;
 pub mod upload;
+pub mod web;

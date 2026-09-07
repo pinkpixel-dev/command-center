@@ -1,7 +1,7 @@
 [package]
 name = "command-center-server"
 # Kept in step with the root package.json, which is the source of truth.
-version = "1.1.0"
+version = "1.2.0"
 description = "Self-hosted Command Center: the same library, served over HTTP"
 authors = ["Pink Pixel <admin@pinkpixel.dev>"]
 edition = "2021"
@@ -31,6 +31,9 @@ tokio = { version = "1", features = ["macros", "rt-multi-thread", "signal", "syn
 # Turns the broadcast receiver behind the event feed into a stream axum can
 # serve as SSE.
 tokio-stream = { version = "0.1", features = ["sync"] }
+# Serving the web bundle next to the API, so the browser has one origin.
+tower = "0.5"
+tower-http = { version = "0.6", features = ["fs", "set-header"] }
 
 [dev-dependencies]
 tempfile = "3"

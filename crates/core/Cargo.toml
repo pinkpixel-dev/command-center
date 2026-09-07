@@ -2,7 +2,7 @@
 name = "command-center-core"
 # Kept in step with the root package.json, which is the source of truth. This
 # is what the OpenAI User-Agent header reports.
-version = "1.1.0"
+version = "1.2.0"
 description = "Shared library core for Command Center: storage, import, export, and AI providers"
 authors = ["Pink Pixel <admin@pinkpixel.dev>"]
 edition = "2021"

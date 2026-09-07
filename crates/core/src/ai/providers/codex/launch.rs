@@ -25,10 +25,17 @@ pub const CONFIG_OVERRIDES: &[&str] = &[
     // `auto` can both write tokens into the Codex home directory.
     r#"cli_auth_credentials_store="keyring""#,
     // Tool containment. Neither of these removes Codex's shell or file tools,
-    // because no such switch exists. They bound what a tool call could reach,
-    // and the client declines every approval on top of that.
+    // because no such switch exists. `read-only` is the boundary that matters:
+    // no writes, and no network unless it is asked for, which it is not.
+    //
+    // `never` is not "never ask and always run", which is what it sounds like.
+    // In Codex's own safety check it is the value that *rejects* anything the
+    // sandbox will not allow, where `on-request` would ask a user who is not
+    // there. `untrusted` used to be set here and was stricter still, but Codex
+    // 0.149.1 retired it as a config key, and `--strict-config` turns a
+    // retired key into a startup failure by design.
     r#"sandbox_mode="read-only""#,
-    r#"approval_policy="untrusted""#,
+    r#"approval_policy="never""#,
     // Command Center sends its own bounded input and expects structured JSON
     // back. None of these belong in that loop.
     r#"web_search="disabled""#,
@@ -216,13 +223,20 @@ mod tests {
     }
 
     #[test]
-    fn the_sandbox_is_read_only_and_approvals_are_not_skipped() {
+    fn the_sandbox_is_read_only_and_nothing_escalates_out_of_it() {
         assert!(CONFIG_OVERRIDES.contains(&r#"sandbox_mode="read-only""#));
-        assert!(CONFIG_OVERRIDES.contains(&r#"approval_policy="untrusted""#));
-        // "never" reads as restrictive but means never ask and always run.
+        assert!(CONFIG_OVERRIDES.contains(&r#"approval_policy="never""#));
+        // Codex 0.149.1 retired this as a config key, and --strict-config
+        // turns a retired key into a startup failure. Setting it here again
+        // would stop the provider connecting on every current Codex.
         assert!(!CONFIG_OVERRIDES
             .iter()
-            .any(|value| value.contains(r#"approval_policy="never""#)));
+            .any(|value| value.contains(r#"approval_policy="untrusted""#)));
+        // The one value that must never appear: it would ask a user who is not
+        // sitting there, and an unanswered prompt is a wedged turn.
+        assert!(!CONFIG_OVERRIDES
+            .iter()
+            .any(|value| value.contains(r#"approval_policy="on-request""#)));
     }
 
     #[test]
